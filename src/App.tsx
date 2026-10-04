@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PetalCanvas, PetalCanvasHandle } from './components/PetalCanvas';
+import { AquaticBackground } from './components/AquaticBackground';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { TimelineSection } from './components/TimelineSection';
@@ -12,11 +13,20 @@ import { OpenWhenModal } from './components/OpenWhenModal';
 import { CertificateModal } from './components/CertificateModal';
 import { MemoryModal } from './components/MemoryModal';
 import { SettingsModal } from './components/SettingsModal';
-import { Milestone, MemoryItem, LetterItem, StickyWish, KeepsakeSettings } from './types';
+import {
+  Milestone,
+  MemoryItem,
+  LetterItem,
+  StickyWish,
+  KeepsakeSettings,
+  ThemeMode,
+} from './types';
 import {
   toggleAmbientMusic,
+  startAmbientMusic,
+  stopAmbientMusic,
   playPetalShowerChime,
-  getIsMusicPlaying,
+  playBubbleSplashChime,
 } from './utils/sound';
 
 const DEFAULT_SETTINGS: KeepsakeSettings = {
@@ -27,7 +37,8 @@ const DEFAULT_SETTINGS: KeepsakeSettings = {
   tripsCount: 34,
   voiceNotesCount: 920,
   petalsGiven: 1420,
-  mainQuote: 'A companion for quiet midnights, endless laughter under golden sunbeams, and the gentle beauty of feeling completely at home.',
+  mainQuote:
+    'A companion for quiet midnights, endless laughter under golden sunbeams, and the gentle beauty of feeling completely at home.',
   heroImageUrl:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBrl9gYx78SUS7omxQOos2juTyjesBhhbF8zZNesct8MqT9_b0ELvIatWQVfNC9GdLtg0p4ohQcUQKvNULaU6qONuUFWdPESiK9OXzU6Ms9254Z1DFhpttFdeRzFV5tz4Gpt63DAKVCKvDl8xBM7NXbko9SxQhXlWtnZvTH1-Io6Y6nDgpVoSoSLZhARPoxs1dVAp7QYgfR_5fYankrtto_hXfBlrV6fdsIM_O3FtUe1Ut756a83lzz',
   heroPhotoLabel: 'An Endless Springtime',
@@ -84,7 +95,8 @@ const DEFAULT_MEMORIES: MemoryItem[] = [
     date: 'April 14 • Kyoto trip',
     category: 'trips',
     tag: 'Garden Blooms',
-    caption: '“Our happiest afternoon — running between greenhouses until the staff gently told us they were locking up.”',
+    caption:
+      '“Our happiest afternoon — running between greenhouses until the staff gently told us they were locking up.”',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuDDgqvZ0qgApbOQ09Rc2Qvm8h0Gyj_FD4ENJzbTxvkFeUqBAIt3xkSRKmIyovxyc1Q6SSrQz6_2gdob6n7cx9Zy2omtFwsl3WUFIhz1npP6HyEyoo_44s5_dM3dKgCVVgmuDtEvGGYK2UWSXY_9OOFAhhxMb03SD5KX3f5ZkxQokt_lopxiOocq-dQ23loTn3ScnDHKQA5jRGXU7lmTvXZuaJnGf2WaQhg3xIxq9vX3k2TOFcJ8Wqkx',
     likes: 148,
@@ -187,6 +199,15 @@ const DEFAULT_WISHES: StickyWish[] = [
 export default function App() {
   const petalCanvasRef = useRef<PetalCanvasHandle | null>(null);
 
+  // Theme state: 'romantic' or 'aquatic'
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const cached = localStorage.getItem('rosewood_theme');
+    if (cached === 'aquatic' || cached === 'romantic') {
+      return cached;
+    }
+    return 'romantic';
+  });
+
   // App State with localStorage caching
   const [settings, setSettings] = useState<KeepsakeSettings>(() => {
     const cached = localStorage.getItem('rosewood_settings');
@@ -246,6 +267,10 @@ export default function App() {
 
   // Sync state to localStorage
   useEffect(() => {
+    localStorage.setItem('rosewood_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
     localStorage.setItem('rosewood_settings', JSON.stringify(settings));
   }, [settings]);
 
@@ -261,20 +286,40 @@ export default function App() {
     localStorage.setItem('rosewood_wishes', JSON.stringify(wishes));
   }, [wishes]);
 
-  // Petal burst trigger
+  // Petal / Bubble burst trigger (ONLY showers when button is pushed!)
   const handleShowerPetals = (count = 50) => {
     if (petalCanvasRef.current) {
       petalCanvasRef.current.burst(count);
     }
-    playPetalShowerChime();
+    if (theme === 'aquatic') {
+      playBubbleSplashChime();
+    } else {
+      playPetalShowerChime();
+    }
     setSettings((prev) => ({
       ...prev,
       petalsGiven: prev.petalsGiven + count,
     }));
   };
 
+  const handleToggleTheme = (newTheme: ThemeMode) => {
+    setTheme(newTheme);
+    if (newTheme === 'aquatic') {
+      playBubbleSplashChime();
+    } else {
+      playPetalShowerChime();
+    }
+    if (petalCanvasRef.current) {
+      petalCanvasRef.current.burst(25);
+    }
+    if (isMusicPlaying) {
+      stopAmbientMusic();
+      startAmbientMusic(newTheme);
+    }
+  };
+
   const handleToggleMusic = () => {
-    const nextState = toggleAmbientMusic((playing) => {
+    const nextState = toggleAmbientMusic(theme, (playing) => {
       setIsMusicPlaying(playing);
     });
     setIsMusicPlaying(nextState);
@@ -343,11 +388,20 @@ export default function App() {
     });
   };
 
+  const isAquatic = theme === 'aquatic';
+
   return (
-    <div className="relative min-h-screen bg-[#fdf9f3] text-[#1c1c18] font-sans antialiased selection:bg-[#ffd9dc] selection:text-[#3f0111] overflow-x-hidden">
-      {/* Interactive Falling Petal Background Canvas */}
+    <div
+      className={`relative min-h-screen transition-colors duration-700 font-sans antialiased overflow-x-hidden ${
+        isAquatic
+          ? 'bg-gradient-to-b from-[#f0f8ff] via-[#e6f4f8] to-[#edf7fa] text-[#03045e] selection:bg-[#caf0f8] selection:text-[#0077b6]'
+          : 'bg-[#fdf9f3] text-[#1c1c18] selection:bg-[#ffd9dc] selection:text-[#3f0111]'
+      }`}
+    >
+      {/* 1. Only showers when button is pushed: Petal/Bubble Canvas */}
       <PetalCanvas
         ref={petalCanvasRef}
+        theme={theme}
         onPetalAdded={(count) => {
           setSettings((prev) => ({
             ...prev,
@@ -356,39 +410,77 @@ export default function App() {
         }}
       />
 
-      {/* Ambient Glow Background Blobs */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#ffd9dc]/20 blur-[140px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#fed65b]/20 blur-[130px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#ffb2ba]/25 blur-[150px] rounded-full pointer-events-none -z-10" />
+      {/* 2. Background animations based on selected theme */}
+      {isAquatic ? (
+        <>
+          {/* Animated cute cartoon seals, otters, sharks, beluga whales, and normal whales! */}
+          <AquaticBackground />
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#90e0ef]/20 blur-[140px] rounded-full pointer-events-none -z-10" />
+          <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#caf0f8]/30 blur-[130px] rounded-full pointer-events-none -z-10" />
+          <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#48cae4]/15 blur-[150px] rounded-full pointer-events-none -z-10" />
+        </>
+      ) : (
+        <>
+          {/* Romantic ambient glow blobs */}
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#ffd9dc]/20 blur-[140px] rounded-full pointer-events-none -z-10" />
+          <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#fed65b]/20 blur-[130px] rounded-full pointer-events-none -z-10" />
+          <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#ffb2ba]/25 blur-[150px] rounded-full pointer-events-none -z-10" />
+        </>
+      )}
 
-      {/* Floating Flower Shower Widget */}
+      {/* Floating Shower Widget */}
       <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 bg-[#ffffff]/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-[#ffd9dc]/60">
-          <span className="w-2 h-2 rounded-full bg-[#735c00] animate-pulse" />
-          <span className="text-xs font-semibold text-[#5d1826]">
-            {settings.petalsGiven.toLocaleString()} Petals Showered
+        <div
+          className={`hidden sm:flex items-center gap-2 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border transition-colors ${
+            isAquatic
+              ? 'bg-[#ffffff]/90 border-[#90e0ef] text-[#0077b6]'
+              : 'bg-[#ffffff]/90 border-[#ffd9dc]/60 text-[#5d1826]'
+          }`}
+        >
+          <span
+            className={`w-2 h-2 rounded-full animate-pulse ${
+              isAquatic ? 'bg-[#0077b6]' : 'bg-[#735c00]'
+            }`}
+          />
+          <span className="text-xs font-semibold">
+            {settings.petalsGiven.toLocaleString()}{' '}
+            {isAquatic ? 'Bubbles Showered' : 'Petals Showered'}
           </span>
         </div>
         <button
-          aria-label="Trigger Petal Shower"
+          aria-label={isAquatic ? 'Trigger Bubble Shower' : 'Trigger Petal Shower'}
           onClick={() => handleShowerPetals(40)}
-          className="relative group p-3.5 bg-[#5d1826] text-white rounded-full shadow-xl hover:shadow-[0_0_24px_rgba(212,175,55,0.45)] transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer border border-[#ffe088]/40"
+          className={`relative group p-3.5 text-white rounded-full shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer border ${
+            isAquatic
+              ? 'bg-[#0077b6] hover:bg-[#023e8a] border-[#caf0f8] hover:shadow-[0_0_24px_rgba(72,202,228,0.5)]'
+              : 'bg-[#5d1826] hover:bg-[#7a2e3b] border-[#ffe088]/40 hover:shadow-[0_0_24px_rgba(212,175,55,0.45)]'
+          }`}
           type="button"
-          title="Shower petals"
+          title={isAquatic ? 'Shower bubbles & sea stars' : 'Shower petals'}
         >
           <span className="material-symbols-outlined text-[24px] text-[#ffe088] transition-transform group-hover:rotate-45">
-            local_florist
+            {isAquatic ? 'bubble_chart' : 'local_florist'}
           </span>
           <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ffe088] opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-[#fed65b]" />
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                isAquatic ? 'bg-[#90e0ef]' : 'bg-[#ffe088]'
+              }`}
+            />
+            <span
+              className={`relative inline-flex rounded-full h-3 w-3 ${
+                isAquatic ? 'bg-[#48cae4]' : 'bg-[#fed65b]'
+              }`}
+            />
           </span>
         </button>
       </div>
 
-      {/* Header */}
+      {/* Header with Theme Slider Switch */}
       <Header
         activeSection={activeSection}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onNavigate={handleNavigate}
         onShowerFlowers={() => handleShowerPetals(50)}
         isMusicPlaying={isMusicPlaying}
@@ -399,10 +491,11 @@ export default function App() {
       />
 
       {/* Main Content */}
-      <main className="w-full pt-20 bg-[#fdf9f3] min-h-[calc(100vh-160px)]">
+      <main className="w-full pt-20 min-h-[calc(100vh-160px)] relative z-10">
         {/* Hero Section */}
         <HeroSection
           settings={settings}
+          theme={theme}
           onShowerFlowers={() => handleShowerPetals(60)}
           onAddMemoryClick={() => handleNavigate('wish-wall')}
           onOpenPhotoLightbox={handleOpenPhotoLightbox}
@@ -442,6 +535,7 @@ export default function App() {
 
         {/* Celebration Banner */}
         <CelebrationBanner
+          theme={theme}
           onShower100Petals={() => handleShowerPetals(100)}
         />
       </main>

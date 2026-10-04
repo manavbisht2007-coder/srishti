@@ -1,7 +1,10 @@
 import React from 'react';
+import { ThemeMode } from '../types';
 
 interface HeaderProps {
   activeSection: string;
+  theme: ThemeMode;
+  onToggleTheme: (newTheme: ThemeMode) => void;
   onNavigate: (sectionId: string) => void;
   onShowerFlowers: () => void;
   isMusicPlaying: boolean;
@@ -13,104 +16,198 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   activeSection,
+  theme,
+  onToggleTheme,
   onNavigate,
   onShowerFlowers,
   isMusicPlaying,
   onToggleMusic,
   onOpenSettings,
   recipientName = 'For My Favorite Person',
-  subtitle = 'An Enduring Keepsake',
+  subtitle,
 }) => {
+  const isAquatic = theme === 'aquatic';
+
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-[#fdf9f3]/85 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(122,46,59,0.07)] border-b border-[#ffd9dc]/40">
-      <div className="h-20 max-w-[1200px] mx-auto px-4 md:px-8 flex items-center justify-between">
+    <header
+      className={`fixed top-0 left-0 w-full z-50 backdrop-blur-xl transition-colors duration-500 border-b ${
+        isAquatic
+          ? 'bg-[#f0f8ff]/85 border-[#caf0f8]/80 shadow-[0_4px_20px_-4px_rgba(0,119,182,0.12)]'
+          : 'bg-[#fdf9f3]/85 border-[#ffd9dc]/40 shadow-[0_4px_20px_-4px_rgba(122,46,59,0.07)]'
+      }`}
+    >
+      <div className="h-20 max-w-[1240px] mx-auto px-4 md:px-6 flex items-center justify-between gap-2">
         {/* Brand / Monogram */}
         <div
           onClick={() => onNavigate('hero')}
-          className="flex items-center gap-3 cursor-pointer group select-none"
+          className="flex items-center gap-2.5 md:gap-3 cursor-pointer group select-none flex-shrink-0"
         >
-          <img
-            alt="Blossom Friendship Monogram"
-            className="h-8 md:h-9 w-auto object-contain transition-transform group-hover:scale-105 duration-300"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuChchE9wzof1jsaA0OBQjlxjXuD-AM4TWq7YFrBlyKn3hVO_SttdEDz4dg40Bd4Ax-B1Y9UxaJ05wmt-ItyXW6BcoP0pyIa4Te-2b7QaJsw_zDK97vLBe8I1bSNb2Z33F0tQ3IWhYKWOi9mmIQ6nTFrfWd_ETa8VanXfiURMiFRu7B1TBb1KvrxbxNhVVOSdzM5z8t7W29TsMqmoruWRr-kPyIy5kO_UDyEELqlWl6jlHrtQaI_27uZ"
-          />
+          {isAquatic ? (
+            <div className="w-9 h-9 rounded-full bg-[#0077b6] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <span className="material-symbols-outlined text-[22px]">scuba_diving</span>
+            </div>
+          ) : (
+            <img
+              alt="Blossom Friendship Monogram"
+              className="h-8 md:h-9 w-auto object-contain transition-transform group-hover:scale-105 duration-300"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuChchE9wzof1jsaA0OBQjlxjXuD-AM4TWq7YFrBlyKn3hVO_SttdEDz4dg40Bd4Ax-B1Y9UxaJ05wmt-ItyXW6BcoP0pyIa4Te-2b7QaJsw_zDK97vLBe8I1bSNb2Z33F0tQ3IWhYKWOi9mmIQ6nTFrfWd_ETa8VanXfiURMiFRu7B1TBb1KvrxbxNhVVOSdzM5z8t7W29TsMqmoruWRr-kPyIy5kO_UDyEELqlWl6jlHrtQaI_27uZ"
+            />
+          )}
           <div className="flex flex-col">
-            <span className="font-serif text-[19px] md:text-[21px] text-[#5d1826] font-semibold tracking-tight leading-tight">
+            <span
+              className={`font-serif text-[18px] md:text-[21px] font-semibold tracking-tight leading-tight transition-colors ${
+                isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              }`}
+            >
               {recipientName}
             </span>
-            <span className="font-sans text-[10px] md:text-[11px] text-[#544244] uppercase tracking-widest hidden sm:inline-block font-semibold">
-              {subtitle}
+            <span
+              className={`font-sans text-[10px] md:text-[11px] uppercase tracking-widest hidden sm:inline-block font-semibold transition-colors ${
+                isAquatic ? 'text-[#0077b6]' : 'text-[#544244]'
+              }`}
+            >
+              {subtitle || (isAquatic ? 'An Ocean of Memories 🐋' : 'An Enduring Keepsake')}
             </span>
           </div>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-1.5 bg-[#f7f3ed]/80 p-1.5 rounded-full shadow-[inset_0_1px_3px_rgba(122,46,59,0.06)] border border-[#d9c1c2]/30">
-          <button
-            onClick={() => onNavigate('our-journey')}
-            className={`px-4 py-2 rounded-full text-xs md:text-sm transition-all cursor-pointer ${
-              activeSection === 'our-journey'
-                ? 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
-                : 'text-[#544244] hover:bg-[#ebe8e2] hover:text-[#1c1c18] font-medium'
+        {/* Theme Transition Slider Button */}
+        <div className="flex items-center">
+          <div
+            className={`relative flex items-center p-1 rounded-full border transition-all duration-300 shadow-inner ${
+              isAquatic
+                ? 'bg-[#caf0f8]/60 border-[#90e0ef]'
+                : 'bg-[#f1ede7] border-[#d9c1c2]/50'
             }`}
           >
-            Our Journey
+            {/* Sliding highlight indicator */}
+            <div
+              className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-out shadow-sm ${
+                isAquatic
+                  ? 'translate-x-[calc(100%+4px)] bg-[#0077b6]'
+                  : 'translate-x-0 bg-[#7a2e3b]'
+              }`}
+            />
+
+            {/* Romantic Theme Button */}
+            <button
+              type="button"
+              onClick={() => onToggleTheme('romantic')}
+              className={`relative z-10 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer select-none ${
+                !isAquatic ? 'text-white' : 'text-[#544244] hover:text-[#1c1c18]'
+              }`}
+              title="Switch to Romantic Blossom theme"
+            >
+              <span className="text-sm">🌸</span>
+              <span className="hidden md:inline font-sans">Romantic</span>
+            </button>
+
+            {/* Aquatic Theme Button */}
+            <button
+              type="button"
+              onClick={() => onToggleTheme('aquatic')}
+              className={`relative z-10 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer select-none ${
+                isAquatic ? 'text-white' : 'text-[#544244] hover:text-[#1c1c18]'
+              }`}
+              title="Switch to Aquatic Ocean theme with cute sea creatures"
+            >
+              <span className="text-sm">🌊</span>
+              <span className="hidden md:inline font-sans">Aquatic</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Navigation */}
+        <nav
+          className={`hidden xl:flex items-center gap-1 p-1.5 rounded-full border transition-colors shadow-2xs ${
+            isAquatic
+              ? 'bg-[#e0fbfc]/70 border-[#90e0ef]/40'
+              : 'bg-[#f7f3ed]/80 border-[#d9c1c2]/30 shadow-[inset_0_1px_3px_rgba(122,46,59,0.06)]'
+          }`}
+        >
+          <button
+            onClick={() => onNavigate('our-journey')}
+            className={`px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
+              activeSection === 'our-journey'
+                ? isAquatic
+                  ? 'bg-[#0077b6] text-white font-semibold shadow-sm'
+                  : 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
+                : 'text-[#544244] hover:text-[#1c1c18] font-medium'
+            }`}
+          >
+            {isAquatic ? 'Voyage Log' : 'Our Journey'}
           </button>
           <button
             onClick={() => onNavigate('memories-gallery')}
-            className={`px-4 py-2 rounded-full text-xs md:text-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
               activeSection === 'memories-gallery'
-                ? 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
-                : 'text-[#544244] hover:bg-[#ebe8e2] hover:text-[#1c1c18] font-medium'
+                ? isAquatic
+                  ? 'bg-[#0077b6] text-white font-semibold shadow-sm'
+                  : 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
+                : 'text-[#544244] hover:text-[#1c1c18] font-medium'
             }`}
           >
-            Memories Gallery
+            {isAquatic ? 'Sea Gallery' : 'Memories Gallery'}
           </button>
           <button
             onClick={() => onNavigate('heartfelt-letters')}
-            className={`px-4 py-2 rounded-full text-xs md:text-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
               activeSection === 'heartfelt-letters'
-                ? 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
-                : 'text-[#544244] hover:bg-[#ebe8e2] hover:text-[#1c1c18] font-medium'
+                ? isAquatic
+                  ? 'bg-[#0077b6] text-white font-semibold shadow-sm'
+                  : 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
+                : 'text-[#544244] hover:text-[#1c1c18] font-medium'
             }`}
           >
-            Heartfelt Letters
+            {isAquatic ? 'Bottled Letters' : 'Heartfelt Letters'}
           </button>
           <button
             onClick={() => onNavigate('wish-wall')}
-            className={`px-4 py-2 rounded-full text-xs md:text-sm transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs transition-all cursor-pointer ${
               activeSection === 'wish-wall'
-                ? 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
-                : 'text-[#544244] hover:bg-[#ebe8e2] hover:text-[#1c1c18] font-medium'
+                ? isAquatic
+                  ? 'bg-[#0077b6] text-white font-semibold shadow-sm'
+                  : 'bg-[#7a2e3b] text-white font-semibold shadow-sm'
+                : 'text-[#544244] hover:text-[#1c1c18] font-medium'
             }`}
           >
-            Wish Wall
+            {isAquatic ? 'Shell Pinboard' : 'Wish Wall'}
           </button>
         </nav>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5 md:gap-3">
-          {/* Shower Flowers Button */}
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          {/* Shower Trigger Button */}
           <button
             onClick={onShowerFlowers}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#f7f3ed] text-[#5d1826] hover:bg-[#ebe8e2] hover:text-[#1c1c18] transition-all shadow-[0_2px_8px_rgba(122,46,59,0.08)] border border-[#ffd9dc] active:scale-95 cursor-pointer text-xs md:text-sm font-semibold"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all shadow-xs active:scale-95 cursor-pointer text-xs md:text-sm font-semibold border ${
+              isAquatic
+                ? 'bg-[#caf0f8]/80 text-[#03045e] border-[#90e0ef] hover:bg-[#90e0ef]/70'
+                : 'bg-[#f7f3ed] text-[#5d1826] border-[#ffd9dc] hover:bg-[#ebe8e2]'
+            }`}
             type="button"
-            title="Shower blossoms across screen"
+            title={isAquatic ? 'Shower iridescent bubbles & sea stars' : 'Shower blossoms across screen'}
           >
-            <span className="material-symbols-outlined text-[18px] text-[#735c00]">local_florist</span>
-            <span className="hidden sm:inline">Shower Flowers</span>
+            <span className="material-symbols-outlined text-[18px] text-[#735c00]">
+              {isAquatic ? 'bubble_chart' : 'local_florist'}
+            </span>
+            <span className="hidden sm:inline">
+              {isAquatic ? 'Shower Bubbles' : 'Shower Flowers'}
+            </span>
           </button>
 
-          {/* Ambient Music / Sound Toggle */}
+          {/* Ambient Music Toggle */}
           <button
             onClick={onToggleMusic}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
               isMusicPlaying
-                ? 'bg-[#ffd9dc] text-[#5d1826] border-[#ffb2ba] shadow-sm animate-pulse'
-                : 'bg-[#f7f3ed] text-[#544244] border-[#d9c1c2]/40 hover:bg-[#ebe8e2] hover:text-[#1c1c18]'
+                ? isAquatic
+                  ? 'bg-[#90e0ef] text-[#03045e] border-[#48cae4] shadow-sm animate-pulse'
+                  : 'bg-[#ffd9dc] text-[#5d1826] border-[#ffb2ba] shadow-sm animate-pulse'
+                : 'bg-white/80 text-[#544244] border-gray-200 hover:bg-gray-100'
             }`}
             type="button"
-            title={isMusicPlaying ? 'Mute soothing melody' : 'Play peaceful keepsake music'}
+            title={isMusicPlaying ? 'Mute soothing melody' : 'Play peaceful melody'}
           >
             <span className="material-symbols-outlined text-[19px]">
               {isMusicPlaying ? 'volume_up' : 'volume_off'}
@@ -120,7 +217,9 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Settings / Personalize Modal */}
           <button
             onClick={onOpenSettings}
-            className="w-9 h-9 rounded-full bg-[#5d1826] hover:bg-[#7a2e3b] text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className={`w-9 h-9 rounded-full text-white flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+              isAquatic ? 'bg-[#0077b6] hover:bg-[#023e8a]' : 'bg-[#5d1826] hover:bg-[#7a2e3b]'
+            }`}
             type="button"
             title="Personalize keepsake details"
           >
@@ -130,38 +229,58 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile subnav row */}
-      <div className="lg:hidden flex items-center justify-center gap-1 px-3 py-2 bg-[#f7f3ed]/90 border-t border-[#d9c1c2]/30 overflow-x-auto">
+      <div
+        className={`xl:hidden flex items-center justify-center gap-1.5 px-3 py-1.5 border-t overflow-x-auto ${
+          isAquatic ? 'bg-[#e0fbfc]/90 border-[#90e0ef]/40' : 'bg-[#f7f3ed]/90 border-[#d9c1c2]/30'
+        }`}
+      >
         <button
           onClick={() => onNavigate('our-journey')}
           className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-            activeSection === 'our-journey' ? 'bg-[#7a2e3b] text-white font-medium' : 'text-[#544244]'
+            activeSection === 'our-journey'
+              ? isAquatic
+                ? 'bg-[#0077b6] text-white font-medium'
+                : 'bg-[#7a2e3b] text-white font-medium'
+              : 'text-[#544244]'
           }`}
         >
-          Our Journey
+          {isAquatic ? 'Voyage Log' : 'Our Journey'}
         </button>
         <button
           onClick={() => onNavigate('memories-gallery')}
           className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-            activeSection === 'memories-gallery' ? 'bg-[#7a2e3b] text-white font-medium' : 'text-[#544244]'
+            activeSection === 'memories-gallery'
+              ? isAquatic
+                ? 'bg-[#0077b6] text-white font-medium'
+                : 'bg-[#7a2e3b] text-white font-medium'
+              : 'text-[#544244]'
           }`}
         >
-          Memories
+          {isAquatic ? 'Sea Gallery' : 'Memories'}
         </button>
         <button
           onClick={() => onNavigate('heartfelt-letters')}
           className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-            activeSection === 'heartfelt-letters' ? 'bg-[#7a2e3b] text-white font-medium' : 'text-[#544244]'
+            activeSection === 'heartfelt-letters'
+              ? isAquatic
+                ? 'bg-[#0077b6] text-white font-medium'
+                : 'bg-[#7a2e3b] text-white font-medium'
+              : 'text-[#544244]'
           }`}
         >
-          Letters
+          {isAquatic ? 'Bottled Letters' : 'Letters'}
         </button>
         <button
           onClick={() => onNavigate('wish-wall')}
           className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-            activeSection === 'wish-wall' ? 'bg-[#7a2e3b] text-white font-medium' : 'text-[#544244]'
+            activeSection === 'wish-wall'
+              ? isAquatic
+                ? 'bg-[#0077b6] text-white font-medium'
+                : 'bg-[#7a2e3b] text-white font-medium'
+              : 'text-[#544244]'
           }`}
         >
-          Wish Wall
+          {isAquatic ? 'Shell Pinboard' : 'Wish Wall'}
         </button>
       </div>
     </header>

@@ -1,3 +1,5 @@
+export type ThemeMode = 'romantic' | 'aquatic';
+
 export interface Milestone {
   id: string;
   chapter: string;

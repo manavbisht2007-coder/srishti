@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { ThemeMode } from '../types';
 
 export interface PetalCanvasHandle {
   burst: (count?: number, originX?: number, originY?: number) => void;
 }
 
 interface PetalCanvasProps {
+  theme?: ThemeMode;
   onPetalAdded?: (amount: number) => void;
 }
 
-interface PetalParticle {
+interface Particle {
   x: number;
   y: number;
   size: number;
@@ -18,10 +20,12 @@ interface PetalParticle {
   speedX: number;
   speedY: number;
   opacity: number;
-  isBurst: boolean;
+  type: 'petal' | 'bubble' | 'star' | 'pearl';
+  wobbleSpeed: number;
+  wobbleOffset: number;
 }
 
-const PETAL_COLORS = [
+const ROMANTIC_COLORS = [
   '#ffd9dc', // soft blush
   '#ffb2ba', // rose pink
   '#dca9ad', // vintage mauve
@@ -31,10 +35,21 @@ const PETAL_COLORS = [
   '#ffe088', // warm gilded
 ];
 
-export const PetalCanvas = forwardRef<PetalCanvasHandle, PetalCanvasProps>(({ onPetalAdded }, ref) => {
+const AQUATIC_COLORS = [
+  '#90e0ef', // soft cyan
+  '#caf0f8', // light aqua
+  '#48cae4', // tropical blue
+  '#ffffff', // pearl white
+  '#fed65b', // golden sand
+  '#ffb4a2', // soft coral pink
+  '#bde0fe', // sky blue
+];
+
+export const PetalCanvas = forwardRef<PetalCanvasHandle, PetalCanvasProps>(({ theme = 'romantic', onPetalAdded }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const petalsRef = useRef<PetalParticle[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
   const animFrameId = useRef<number | null>(null);
+  const isRunningRef = useRef(false);
 
   useImperativeHandle(ref, () => ({
     burst: (count = 50, originX?: number, originY?: number) => {
@@ -52,112 +67,189 @@ export const PetalCanvas = forwardRef<PetalCanvasHandle, PetalCanvasProps>(({ on
     const baseX = originX !== undefined ? originX : width / 2;
     const baseY = originY !== undefined ? originY : height * 0.65;
 
+    const isAquatic = theme === 'aquatic';
+    const colorPalette = isAquatic ? AQUATIC_COLORS : ROMANTIC_COLORS;
+
     for (let i = 0; i < count; i++) {
-      const p: PetalParticle = {
-        x: baseX + (Math.random() - 0.5) * 350,
-        y: baseY + (Math.random() - 0.5) * 120,
-        size: Math.random() * 9 + 6,
-        color: PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)],
+      let particleType: Particle['type'] = 'petal';
+      if (isAquatic) {
+        const rand = Math.random();
+        if (rand < 0.5) particleType = 'bubble';
+        else if (rand < 0.75) particleType = 'pearl';
+        else particleType = 'star';
+      }
+
+      const p: Particle = {
+        x: baseX + (Math.random() - 0.5) * 360,
+        y: baseY + (Math.random() - 0.5) * 140,
+        size: isAquatic ? Math.random() * 11 + 6 : Math.random() * 9 + 6,
+        color: colorPalette[Math.floor(Math.random() * colorPalette.length)],
         angle: Math.random() * 360,
-        angularSpeed: (Math.random() - 0.5) * 4,
+        angularSpeed: (Math.random() - 0.5) * 3.5,
         speedX: (Math.random() - 0.5) * 9,
-        speedY: -(Math.random() * 6 + 4),
+        speedY: -(Math.random() * 6.5 + 3.5),
         opacity: Math.random() * 0.4 + 0.6,
-        isBurst: true,
+        type: particleType,
+        wobbleSpeed: Math.random() * 0.08 + 0.03,
+        wobbleOffset: Math.random() * Math.PI * 2,
       };
-      petalsRef.current.push(p);
+      particlesRef.current.push(p);
     }
 
-    if (petalsRef.current.length > 280) {
-      petalsRef.current = petalsRef.current.slice(petalsRef.current.length - 220);
+    // Keep memory bounded
+    if (particlesRef.current.length > 300) {
+      particlesRef.current = particlesRef.current.slice(particlesRef.current.length - 240);
     }
+
+    // Start animation loop if not currently running
+    if (!isRunningRef.current) {
+      isRunningRef.current = true;
+      runAnimation();
+    }
+  };
+
+  const runAnimation = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      isRunningRef.current = false;
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      isRunningRef.current = false;
+      return;
+    }
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Filter out particles that have left the screen entirely (DO NOT LOOP/CONTINUOUSLY RECYCLE)
+    particlesRef.current = particlesRef.current.filter((p) => {
+      // Check boundaries:
+      if (p.type === 'bubble') {
+        // Bubbles float up and out, or fall then rise
+        return p.y > -40 && p.x > -40 && p.x < width + 40 && p.opacity > 0.05;
+      }
+      return p.y < height + 40 && p.x > -40 && p.x < width + 40;
+    });
+
+    if (particlesRef.current.length === 0) {
+      // Stop animation loop when all showered particles have finished!
+      ctx.clearRect(0, 0, width, height);
+      isRunningRef.current = false;
+      return;
+    }
+
+    for (let i = 0; i < particlesRef.current.length; i++) {
+      const p = particlesRef.current[i];
+
+      if (p.type === 'bubble') {
+        p.speedY += 0.08; // Gentle buoyancy transition
+        if (p.speedY > -0.5) {
+          p.speedY = -Math.abs(p.speedY * 0.7) - 1.2; // Float up!
+        }
+        p.x += p.speedX * 0.6 + Math.sin(p.angle * 0.05 + p.wobbleOffset) * 1.2;
+        p.y += p.speedY;
+        p.opacity -= 0.003;
+      } else {
+        // Petal / Star / Pearl gravity physics
+        p.speedY += 0.15;
+        p.x += p.speedX;
+        p.y += p.speedY;
+      }
+
+      p.angle += p.angularSpeed;
+
+      // Draw particle based on type
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.angle * Math.PI) / 180);
+      ctx.globalAlpha = Math.max(0, p.opacity);
+
+      if (p.type === 'bubble') {
+        // Shiny translucent soap/sea bubble
+        ctx.fillStyle = 'rgba(202, 240, 248, 0.28)';
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Little white highlight crescent
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(-p.size * 0.35, -p.size * 0.35, p.size * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.type === 'star') {
+        // Mini sea star
+        ctx.fillStyle = p.color;
+        const spikes = 5;
+        const outerRadius = p.size;
+        const innerRadius = p.size * 0.5;
+        let rot = (Math.PI / 2) * 3;
+        const step = Math.PI / spikes;
+
+        ctx.beginPath();
+        ctx.moveTo(0, -outerRadius);
+        for (let j = 0; j < spikes; j++) {
+          let xCoord = Math.cos(rot) * outerRadius;
+          let yCoord = Math.sin(rot) * outerRadius;
+          ctx.lineTo(xCoord, yCoord);
+          rot += step;
+
+          xCoord = Math.cos(rot) * innerRadius;
+          yCoord = Math.sin(rot) * innerRadius;
+          ctx.lineTo(xCoord, yCoord);
+          rot += step;
+        }
+        ctx.lineTo(0, -outerRadius);
+        ctx.closePath();
+        ctx.fill();
+      } else if (p.type === 'pearl') {
+        // Shimmering pearl
+        const gradient = ctx.createRadialGradient(-p.size * 0.2, -p.size * 0.2, 1, 0, 0, p.size);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.6, '#caf0f8');
+        gradient.addColorStop(1, '#90e0ef');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 0.75, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Romantic Petal: curved organic ellipse
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    animFrameId.current = requestAnimationFrame(runAnimation);
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     const handleResize = () => {
       if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
 
     window.addEventListener('resize', handleResize);
 
-    // Initial ambient drifting petals
-    petalsRef.current = [];
-    for (let i = 0; i < 48; i++) {
-      petalsRef.current.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        size: Math.random() * 7 + 5,
-        color: PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)],
-        angle: Math.random() * 360,
-        angularSpeed: (Math.random() - 0.5) * 1.8,
-        speedX: (Math.random() - 0.5) * 1.5,
-        speedY: Math.random() * 1.4 + 0.8,
-        opacity: Math.random() * 0.4 + 0.55,
-        isBurst: false,
-      });
-    }
-
-    let windTime = 0;
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-      windTime += 0.015;
-      const windForce = Math.sin(windTime) * 0.6;
-
-      for (let i = 0; i < petalsRef.current.length; i++) {
-        const p = petalsRef.current[i];
-
-        if (p.isBurst) {
-          p.speedY += 0.16; // gravity
-          p.x += p.speedX;
-          p.y += p.speedY;
-          if (p.speedY > 1.5) {
-            p.isBurst = false;
-            p.speedY = Math.random() * 1.5 + 0.9;
-          }
-        } else {
-          p.x += p.speedX + windForce * 0.4 + Math.sin(p.angle * (Math.PI / 180)) * 0.4;
-          p.y += p.speedY;
-        }
-
-        p.angle += p.angularSpeed;
-
-        // Reset if past screen bottom
-        if (p.y > height + 30) {
-          p.y = -20;
-          p.x = Math.random() * width;
-          p.isBurst = false;
-          p.speedY = Math.random() * 1.4 + 0.8;
-          p.speedX = (Math.random() - 0.5) * 1.5;
-        }
-
-        // Draw petal as organic curved ellipse
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.angle * Math.PI) / 180);
-        ctx.globalAlpha = p.opacity;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        // Slightly teardrop/petal shape
-        ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      animFrameId.current = requestAnimationFrame(render);
-    };
-
-    render();
+    // IMPORTANT: Empty on mount so flowers do NOT shower continuously!
+    particlesRef.current = [];
+    isRunningRef.current = false;
 
     return () => {
       window.removeEventListener('resize', handleResize);
