@@ -45,13 +45,13 @@ export interface StickyWish {
 export interface KeepsakeSettings {
   recipientName: string;
   subtitle: string;
-  yearsCount: number;
-  daysCount: number;
-  tripsCount: number;
-  voiceNotesCount: number;
+  startDate: string; // ISO date format YYYY-MM-DD for dynamic 24hr daily day tracking
   petalsGiven: number;
   mainQuote: string;
   heroImageUrl: string;
   heroPhotoLabel: string;
   heroPhotoSub: string;
+  mainLetterTitle: string;
+  mainLetterContent: string;
+  mainLetterSalutation?: string;
 }

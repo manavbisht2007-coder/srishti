@@ -32,10 +32,7 @@ import {
 const DEFAULT_SETTINGS: KeepsakeSettings = {
   recipientName: 'For My Favorite Person',
   subtitle: 'An Enduring Keepsake',
-  yearsCount: 5,
-  daysCount: 1826,
-  tripsCount: 34,
-  voiceNotesCount: 920,
+  startDate: '2021-10-04', // 5 years from current 2026 = Day 1,826
   petalsGiven: 1420,
   mainQuote:
     'A companion for quiet midnights, endless laughter under golden sunbeams, and the gentle beauty of feeling completely at home.',
@@ -43,6 +40,8 @@ const DEFAULT_SETTINGS: KeepsakeSettings = {
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBrl9gYx78SUS7omxQOos2juTyjesBhhbF8zZNesct8MqT9_b0ELvIatWQVfNC9GdLtg0p4ohQcUQKvNULaU6qONuUFWdPESiK9OXzU6Ms9254Z1DFhpttFdeRzFV5tz4Gpt63DAKVCKvDl8xBM7NXbko9SxQhXlWtnZvTH1-Io6Y6nDgpVoSoSLZhARPoxs1dVAp7QYgfR_5fYankrtto_hXfBlrV6fdsIM_O3FtUe1Ut756a83lzz',
   heroPhotoLabel: 'An Endless Springtime',
   heroPhotoSub: 'Favorite Soul',
+  mainLetterTitle: 'A Letter For When You Need a Smile',
+  mainLetterContent: `If you are reading this on an ordinary Tuesday or on an evening when the world feels slightly too heavy, I want you to take a slow breath and remember something simple:\n\n“You have this quiet, effortless magic of making spaces feel softer and people feel understood. You never ask for the spotlight, yet everyone in your presence blooms a little wider.”\n\nThank you for laughing at my worst puns, for holding my silence when words were too messy, and for celebrating every little victory like it was the world cup. Meeting you wasn’t luck—it was grace. Here’s to every horizon we haven't crossed yet.`,
 };
 
 const DEFAULT_MILESTONES: Milestone[] = [
@@ -157,6 +156,30 @@ const DEFAULT_MEMORIES: MemoryItem[] = [
   },
 ];
 
+const DEFAULT_LETTERS: LetterItem[] = [
+  {
+    id: 'letter-scary-dreams',
+    title: 'When you have big scary dreams ahead',
+    condition: 'Open When: You have big scary dreams ahead',
+    preview: 'You were never meant for a small, timid life...',
+    content: `My brilliant friend,\n\nWhenever the world feels daunting and your ambitions feel larger than your hands, please remember how many mountain passes you have already traversed.\n\nYou have an instinct that is sharp, a heart that is stubborn in the best ways, and an imagination that deserves to take up space. Don't shrink to fit rooms that were built before you arrived.\n\nTake the leap. Even if your knees shake, take it anyway. I will be right here on the ground, cheering with bells on, ready with celebration lattes or ice cream depending on the day.\n\nYou've got this. You always have.\n\nWith unending faith in you,\nYour Biggest Fan`,
+  },
+  {
+    id: 'letter-late-night-drives',
+    title: 'When you miss our late-night drives',
+    condition: 'Open When: You miss our late-night drives',
+    preview: 'Roll down the window, put on that 2010s playlist...',
+    content: `Hey night owl,\n\nIf you're missing the chill of coastal air through cracked windows and the sound of our voices harmonizing terribly to songs we only half-remembered: close your eyes for five seconds.\n\nPicture the yellow streetlights streaking against the dashboard. Smell the warm French fries in the passenger seat. That warmth isn't gone; it's saved in the bank of our memories, earning interest every single day.\n\nText me right now, even if it's 3 AM. I might be asleep, but I'll wake up to your ping with a grin on my face.\n\nUntil the next empty highway,\nYour Road Trip Navigator`,
+  },
+  {
+    id: 'letter-rainy-days',
+    title: 'When you need a reminder of how loved you are',
+    condition: 'Open When: You need a gentle reminder of your light',
+    preview: 'On days when you feel invisible or exhausted...',
+    content: `Dearest soul,\n\nIf today was unkind to you, please be extra gentle with yourself tonight. Make yourself hot chamomile tea, wrap yourself in the softest blanket in your home, and lay down your worries.\n\nYou do not have to be remarkable every single hour. Your worth has never been tied to productivity. You are deeply cherished simply for your laugh, your kindness, and the way you care for the people in your orbit.\n\nRest up. The sun will rise again tomorrow, and so will you.\n\nAlways and forever in your corner,\nWith all my love`,
+  },
+];
+
 const DEFAULT_WISHES: StickyWish[] = [
   {
     id: 'w-1',
@@ -245,6 +268,18 @@ export default function App() {
     return DEFAULT_MEMORIES;
   });
 
+  const [letters, setLetters] = useState<LetterItem[]>(() => {
+    const cached = localStorage.getItem('rosewood_letters');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        return DEFAULT_LETTERS;
+      }
+    }
+    return DEFAULT_LETTERS;
+  });
+
   const [wishes, setWishes] = useState<StickyWish[]>(() => {
     const cached = localStorage.getItem('rosewood_wishes');
     if (cached) {
@@ -281,6 +316,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('rosewood_memories', JSON.stringify(memories));
   }, [memories]);
+
+  useEffect(() => {
+    localStorage.setItem('rosewood_letters', JSON.stringify(letters));
+  }, [letters]);
 
   useEffect(() => {
     localStorage.setItem('rosewood_wishes', JSON.stringify(wishes));
@@ -341,6 +380,7 @@ export default function App() {
     }
   };
 
+  // Milestone actions
   const handleAddMilestone = (newMilestone: Omit<Milestone, 'id'>) => {
     const item: Milestone = {
       ...newMilestone,
@@ -349,6 +389,15 @@ export default function App() {
     setMilestones((prev) => [...prev, item]);
   };
 
+  const handleEditMilestone = (updated: Milestone) => {
+    setMilestones((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  };
+
+  const handleDeleteMilestone = (id: string) => {
+    setMilestones((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  // Memory actions
   const handleAddMemory = (newMemory: Omit<MemoryItem, 'id' | 'likes'>) => {
     const item: MemoryItem = {
       ...newMemory,
@@ -358,12 +407,47 @@ export default function App() {
     setMemories((prev) => [item, ...prev]);
   };
 
+  const handleEditMemory = (updated: MemoryItem) => {
+    setMemories((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  };
+
+  const handleDeleteMemory = (id: string) => {
+    setMemories((prev) => prev.filter((m) => m.id !== id));
+  };
+
   const handleLikeMemory = (id: string) => {
     setMemories((prev) =>
       prev.map((m) => (m.id === id ? { ...m, likes: m.likes + 1 } : m))
     );
   };
 
+  // Letter actions
+  const handleAddLetter = (newLetter: Omit<LetterItem, 'id'>) => {
+    const item: LetterItem = {
+      ...newLetter,
+      id: `letter-${Date.now()}`,
+      isCustom: true,
+    };
+    setLetters((prev) => [...prev, item]);
+  };
+
+  const handleEditLetter = (updated: LetterItem) => {
+    setLetters((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+  };
+
+  const handleDeleteLetter = (id: string) => {
+    setLetters((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const handleEditMainLetter = (title: string, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      mainLetterTitle: title,
+      mainLetterContent: content,
+    }));
+  };
+
+  // Wish actions
   const handleAddWish = (newWish: Omit<StickyWish, 'id' | 'timestamp'>) => {
     const item: StickyWish = {
       ...newWish,
@@ -371,6 +455,14 @@ export default function App() {
       timestamp: 'Just now',
     };
     setWishes((prev) => [item, ...prev]);
+  };
+
+  const handleEditWish = (updated: StickyWish) => {
+    setWishes((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+  };
+
+  const handleDeleteWish = (id: string) => {
+    setWishes((prev) => prev.filter((w) => w.id !== id));
   };
 
   const handleOpenPhotoLightbox = (imgUrl: string, title: string) => {
@@ -492,44 +584,62 @@ export default function App() {
 
       {/* Main Content */}
       <main className="w-full pt-20 min-h-[calc(100vh-160px)] relative z-10">
-        {/* Hero Section */}
+        {/* Hero Section with Live 24hr Day Counter Icon */}
         <HeroSection
           settings={settings}
           theme={theme}
           onShowerFlowers={() => handleShowerPetals(60)}
           onAddMemoryClick={() => handleNavigate('wish-wall')}
           onOpenPhotoLightbox={handleOpenPhotoLightbox}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
 
-        {/* Timeline Section */}
+        {/* Timeline Section with Edit & Delete */}
         <TimelineSection
           milestones={milestones}
+          theme={theme}
           onAddMilestone={handleAddMilestone}
+          onEditMilestone={handleEditMilestone}
+          onDeleteMilestone={handleDeleteMilestone}
           onShowerFlowers={() => handleShowerPetals(40)}
         />
 
-        {/* Gallery Section */}
+        {/* Gallery Section with Edit & Delete */}
         <GallerySection
           memories={memories}
+          theme={theme}
           onAddMemory={handleAddMemory}
+          onEditMemory={handleEditMemory}
+          onDeleteMemory={handleDeleteMemory}
           onLikeMemory={handleLikeMemory}
           onOpenLightbox={(memory) => setSelectedMemory(memory)}
           onShowerFlowers={() => handleShowerPetals(30)}
         />
 
-        {/* Letters & Envelopes Section */}
+        {/* Letters & Envelopes Section with Edit & Delete */}
         <LettersSection
+          letters={letters}
+          theme={theme}
+          mainLetterTitle={settings.mainLetterTitle}
+          mainLetterContent={settings.mainLetterContent}
           onOpenLetter={(letter) => setSelectedLetter(letter)}
+          onAddLetter={handleAddLetter}
+          onEditLetter={handleEditLetter}
+          onDeleteLetter={handleDeleteLetter}
+          onEditMainLetter={handleEditMainLetter}
           onOpenCertificate={() => setIsCertificateOpen(true)}
           onShowerFlowers={() => handleShowerPetals(30)}
           isMusicPlaying={isMusicPlaying}
           onToggleMusic={handleToggleMusic}
         />
 
-        {/* Pinboard Wish Wall */}
+        {/* Pinboard Wish Wall with Edit & Delete */}
         <PinboardSection
           wishes={wishes}
+          theme={theme}
           onAddWish={handleAddWish}
+          onEditWish={handleEditWish}
+          onDeleteWish={handleDeleteWish}
           onShowerFlowers={() => handleShowerPetals(40)}
         />
 
@@ -569,6 +679,7 @@ export default function App() {
 
       <SettingsModal
         isOpen={isSettingsOpen}
+        theme={theme}
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSave={(newSettings) => setSettings(newSettings)}

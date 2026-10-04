@@ -1,9 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { MemoryItem } from '../types';
+import { MemoryItem, ThemeMode } from '../types';
 
 interface GallerySectionProps {
   memories: MemoryItem[];
+  theme?: ThemeMode;
   onAddMemory: (memory: Omit<MemoryItem, 'id' | 'likes'>) => void;
+  onEditMemory: (memory: MemoryItem) => void;
+  onDeleteMemory: (id: string) => void;
   onLikeMemory: (id: string) => void;
   onOpenLightbox: (memory: MemoryItem) => void;
   onShowerFlowers: () => void;
@@ -11,7 +14,10 @@ interface GallerySectionProps {
 
 export const GallerySection: React.FC<GallerySectionProps> = ({
   memories,
+  theme = 'romantic',
   onAddMemory,
+  onEditMemory,
+  onDeleteMemory,
   onLikeMemory,
   onOpenLightbox,
   onShowerFlowers,
@@ -26,6 +32,17 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isPinnedFeedback, setIsPinnedFeedback] = useState(false);
 
+  // Edit memory modal state
+  const [editingMemory, setEditingMemory] = useState<MemoryItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCaption, setEditCaption] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editTag, setEditTag] = useState('');
+  const [editCategory, setEditCategory] = useState<'trips' | 'silly' | 'milestones'>('trips');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editAuthor, setEditAuthor] = useState('');
+
+  const isAquatic = theme === 'aquatic';
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const filteredMemories = memories.filter((item) => {
@@ -62,7 +79,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
   const handleSubmitUpload = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalImage = previewImage || imageUrlInput.trim() || 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80';
+    const finalImage =
+      previewImage ||
+      imageUrlInput.trim() ||
+      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80';
     const finalTitle = uploadTitle.trim() || 'A Precious Memory';
     const finalQuote = uploadQuote.trim() || '“One of those days where everything felt like poetry.”';
     const finalAuthor = authorName.trim() || 'Bestie';
@@ -85,7 +105,6 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     setIsPinnedFeedback(true);
     onShowerFlowers();
 
-    // Reset fields
     setPreviewImage(null);
     setImageUrlInput('');
     setUploadTitle('');
@@ -98,15 +117,54 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     }, 3000);
   };
 
+  const openEditModal = (mem: MemoryItem) => {
+    setEditingMemory(mem);
+    setEditTitle(mem.title);
+    setEditCaption(mem.caption);
+    setEditDate(mem.date);
+    setEditTag(mem.tag);
+    setEditCategory(mem.category === 'all' ? 'trips' : mem.category);
+    setEditImageUrl(mem.imageUrl);
+    setEditAuthor(mem.author);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMemory) return;
+
+    onEditMemory({
+      ...editingMemory,
+      title: editTitle.trim() || editingMemory.title,
+      caption: editCaption.trim() || editingMemory.caption,
+      date: editDate.trim() || editingMemory.date,
+      tag: editTag.trim() || editingMemory.tag,
+      category: editCategory,
+      imageUrl: editImageUrl.trim() || editingMemory.imageUrl,
+      author: editAuthor.trim() || editingMemory.author,
+      authorInitial: editAuthor.trim().charAt(0).toUpperCase() || editingMemory.authorInitial,
+    });
+
+    setEditingMemory(null);
+    onShowerFlowers();
+  };
+
   return (
-    <section id="memories-gallery" className="max-w-[1200px] mx-auto px-4 md:px-8 py-16 md:py-24 w-full">
+    <section id="memories-gallery" className="max-w-[1200px] mx-auto px-4 md:px-8 py-16 md:py-24 w-full relative z-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
-          <span className="text-[11px] font-bold text-[#735c00] uppercase tracking-widest font-sans">
-            Visual Chronicle
+          <span
+            className={`text-[11px] font-bold uppercase tracking-widest font-sans ${
+              isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+            }`}
+          >
+            {isAquatic ? 'Ocean Visual Chronicle' : 'Visual Chronicle'}
           </span>
-          <h2 className="font-serif text-[32px] md:text-[38px] text-[#5d1826] mt-1 font-normal">
-            Treasured Keepsake Gallery
+          <h2
+            className={`font-serif text-[32px] md:text-[38px] mt-1 font-normal ${
+              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+            }`}
+          >
+            {isAquatic ? 'Treasured Sea Keepsake Gallery' : 'Treasured Keepsake Gallery'}
           </h2>
           <p className="text-sm md:text-base text-[#544244] mt-1">
             Candid frames, honest moments, and laughter etched in amber light.
@@ -115,50 +173,28 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
         {/* Filter Chips */}
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              filter === 'all'
-                ? 'bg-[#5d1826] text-white shadow-sm'
-                : 'bg-[#f7f3ed] text-[#544244] hover:bg-[#ebe8e2]'
-            }`}
-            type="button"
-          >
-            All Memories
-          </button>
-          <button
-            onClick={() => setFilter('trips')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              filter === 'trips'
-                ? 'bg-[#5d1826] text-white shadow-sm'
-                : 'bg-[#f7f3ed] text-[#544244] hover:bg-[#ebe8e2]'
-            }`}
-            type="button"
-          >
-            Trips & Sunsets
-          </button>
-          <button
-            onClick={() => setFilter('silly')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              filter === 'silly'
-                ? 'bg-[#5d1826] text-white shadow-sm'
-                : 'bg-[#f7f3ed] text-[#544244] hover:bg-[#ebe8e2]'
-            }`}
-            type="button"
-          >
-            Silly Moments
-          </button>
-          <button
-            onClick={() => setFilter('milestones')}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              filter === 'milestones'
-                ? 'bg-[#5d1826] text-white shadow-sm'
-                : 'bg-[#f7f3ed] text-[#544244] hover:bg-[#ebe8e2]'
-            }`}
-            type="button"
-          >
-            Milestones
-          </button>
+          {(['all', 'trips', 'silly', 'milestones'] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                filter === cat
+                  ? isAquatic
+                    ? 'bg-[#0077b6] text-white shadow-sm'
+                    : 'bg-[#5d1826] text-white shadow-sm'
+                  : 'bg-[#ffffff]/80 text-[#544244] hover:bg-white border border-[#d9c1c2]/40'
+              }`}
+              type="button"
+            >
+              {cat === 'all'
+                ? 'All Memories'
+                : cat === 'trips'
+                ? 'Trips & Sunsets'
+                : cat === 'silly'
+                ? 'Silly Moments'
+                : 'Milestones'}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -180,7 +216,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 Upload a Memory
               </p>
               <p className="text-xs text-[#544244] mb-4">
-                Add your favorite candid snapshot of her to this shared treasure chest.
+                Add your favorite candid snapshot to this shared treasure chest.
               </p>
 
               {/* Drag and Drop Target */}
@@ -297,7 +333,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
               className={`mt-5 w-full py-2.5 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                 isPinnedFeedback
                   ? 'bg-[#735c00] text-white'
-                  : 'bg-[#5d1826] text-white hover:bg-[#7a2e3b] hover:shadow-md'
+                  : isAquatic
+                  ? 'bg-[#0077b6] text-white hover:bg-[#023e8a]'
+                  : 'bg-[#5d1826] text-white hover:bg-[#7a2e3b]'
               }`}
               type="submit"
             >
@@ -310,7 +348,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
         {filteredMemories.map((card) => (
           <div
             key={card.id}
-            className="bg-[#ffffff] p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col border border-[#ffd9dc]/40 hover:-translate-y-1 group"
+            className={`bg-[#ffffff] p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col border hover:-translate-y-1 group relative ${
+              isAquatic ? 'border-[#caf0f8]' : 'border-[#ffd9dc]/40'
+            }`}
           >
             {/* Image Frame */}
             <div
@@ -326,7 +366,34 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
               <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-[10px] font-bold text-[#5d1826] uppercase font-sans tracking-wider shadow-2xs">
                 {card.tag}
               </span>
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium gap-1">
+
+              {/* Edit / Delete quick buttons overlay */}
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditModal(card);
+                  }}
+                  title="Edit Memory"
+                  className="w-7 h-7 rounded-full bg-white/90 text-[#544244] hover:text-[#5d1826] hover:bg-white flex items-center justify-center shadow-xs cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[15px]">edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteMemory(card.id);
+                  }}
+                  title="Delete Memory"
+                  className="w-7 h-7 rounded-full bg-white/90 text-[#544244] hover:text-red-600 hover:bg-white flex items-center justify-center shadow-xs cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[15px]">delete</span>
+                </button>
+              </div>
+
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium gap-1 pointer-events-none">
                 <span className="material-symbols-outlined text-[18px]">zoom_in</span>
                 <span>Enlarge</span>
               </div>
@@ -354,7 +421,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
             <p
               onClick={() => onOpenLightbox(card)}
-              className="font-serif text-[20px] font-semibold text-[#5d1826] mb-1 cursor-pointer hover:underline"
+              className={`font-serif text-[20px] font-semibold mb-1 cursor-pointer hover:underline ${
+                isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              }`}
             >
               {card.title}
             </p>
@@ -365,22 +434,157 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
             <div className="mt-auto pt-4 flex items-center justify-between border-t border-[#f1ede7]">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-[#ffd9dc] flex items-center justify-center text-[10px] text-[#3f0111] font-bold">
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    isAquatic ? 'bg-[#caf0f8] text-[#0077b6]' : 'bg-[#ffd9dc] text-[#3f0111]'
+                  }`}
+                >
                   {card.authorInitial}
                 </div>
                 <span className="text-xs text-[#544244] font-medium">Pinned by {card.author}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => onOpenLightbox(card)}
-                className="text-[11px] text-[#735c00] hover:underline font-semibold"
-              >
-                Read note
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openEditModal(card)}
+                  className="text-[11px] text-[#735c00] hover:underline font-semibold cursor-pointer"
+                >
+                  Edit
+                </button>
+                <span className="text-[#d9c1c2]">•</span>
+                <button
+                  type="button"
+                  onClick={() => onOpenLightbox(card)}
+                  className="text-[11px] text-[#735c00] hover:underline font-semibold cursor-pointer"
+                >
+                  Read note
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Edit Memory Modal */}
+      {editingMemory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-[#fdf9f3] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#ffd9dc] relative animate-scale-up max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setEditingMemory(null)}
+              className="absolute top-5 right-5 text-[#877274] hover:text-[#5d1826] p-1 rounded-full cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            <span className="text-[11px] font-bold text-[#735c00] uppercase tracking-wider font-sans">
+              Edit Gallery Item
+            </span>
+            <h3
+              className={`font-serif text-2xl font-semibold mb-4 ${
+                isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              }`}
+            >
+              Update Treasured Memory
+            </h3>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
+                  Memory Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-[#ffffff] border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
+                  Story & Reflection
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editCaption}
+                  onChange={(e) => setEditCaption(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-[#ffffff] border border-[#d9c1c2] outline-none text-[#1c1c18] italic font-serif"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
+                  Photo URL
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={editImageUrl}
+                  onChange={(e) => setEditImageUrl(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-[#ffffff] border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
+                    Date Tag
+                  </label>
+                  <input
+                    type="text"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-[#ffffff] border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
+                    Mood Badge
+                  </label>
+                  <input
+                    type="text"
+                    value={editTag}
+                    onChange={(e) => setEditTag(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-[#ffffff] border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
+                  Pinned By
+                </label>
+                <input
+                  type="text"
+                  value={editAuthor}
+                  onChange={(e) => setEditAuthor(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-[#ffffff] border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-[#d9c1c2]/50">
+                <button
+                  type="button"
+                  onClick={() => setEditingMemory(null)}
+                  className="px-4 py-2 rounded-lg text-sm text-[#544244] hover:bg-[#ebe8e2] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-5 py-2 rounded-lg text-white text-sm font-semibold shadow-sm transition-colors cursor-pointer ${
+                    isAquatic ? 'bg-[#0077b6] hover:bg-[#023e8a]' : 'bg-[#5d1826] hover:bg-[#7a2e3b]'
+                  }`}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

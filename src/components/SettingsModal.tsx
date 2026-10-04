@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { KeepsakeSettings } from '../types';
+import { KeepsakeSettings, ThemeMode } from '../types';
+import { calculateYearsAndDays } from '../utils/dateTracker';
 
 interface SettingsModalProps {
   isOpen: boolean;
+  theme?: ThemeMode;
   onClose: () => void;
   settings: KeepsakeSettings;
   onSave: (newSettings: KeepsakeSettings) => void;
@@ -30,14 +32,18 @@ const PHOTO_PRESETS = [
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
+  theme = 'romantic',
   onClose,
   settings,
   onSave,
   onShowerFlowers,
 }) => {
   const [formData, setFormData] = useState<KeepsakeSettings>(settings);
+  const isAquatic = theme === 'aquatic';
 
   if (!isOpen) return null;
+
+  const currentTracker = calculateYearsAndDays(formData.startDate);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +63,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </button>
 
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-7 h-7 rounded-full bg-[#5d1826] text-[#fed65b] flex items-center justify-center shadow-xs">
+          <span
+            className={`w-7 h-7 rounded-full text-[#fed65b] flex items-center justify-center shadow-xs ${
+              isAquatic ? 'bg-[#0077b6]' : 'bg-[#5d1826]'
+            }`}
+          >
             <span className="material-symbols-outlined text-[16px]">edit</span>
           </span>
           <span className="text-[11px] font-bold text-[#735c00] tracking-widest uppercase font-sans">
@@ -65,7 +75,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </span>
         </div>
 
-        <h3 className="font-serif text-2xl font-semibold text-[#5d1826] mb-4">
+        <h3
+          className={`font-serif text-2xl font-semibold mb-4 ${
+            isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+          }`}
+        >
           Customize Your Keepsake
         </h3>
 
@@ -97,30 +111,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1 font-sans">
-                Years Celebrated
+          {/* Dynamic 24-Hour Start Date Setting */}
+          <div className="p-4 bg-white rounded-xl border border-[#ffd9dc]/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-bold text-[#5d1826] uppercase font-sans">
+                Friendship / Anniversary Start Date
               </label>
-              <input
-                type="number"
-                min={1}
-                value={formData.yearsCount}
-                onChange={(e) => setFormData({ ...formData, yearsCount: Number(e.target.value) })}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] text-[#1c1c18] outline-none"
-              />
+              <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Auto-tracks daily
+              </span>
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1 font-sans">
-                Days Count
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={formData.daysCount}
-                onChange={(e) => setFormData({ ...formData, daysCount: Number(e.target.value) })}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] text-[#1c1c18] outline-none"
-              />
+            <p className="text-xs text-[#544244] mb-2 leading-relaxed">
+              The day count auto-increments every 24 hours at midnight based on this date.
+            </p>
+            <input
+              type="date"
+              required
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              className="w-full px-3 py-2 text-sm rounded-lg bg-[#f7f3ed] border border-[#d9c1c2] text-[#1c1c18] outline-none"
+            />
+            <div className="mt-2 text-xs text-[#735c00] font-semibold flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px]">calendar_today</span>
+              <span>Currently: Day {currentTracker.totalDays.toLocaleString()} ({currentTracker.years} Years)</span>
             </div>
           </div>
 
@@ -146,7 +159,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   key={idx}
                   type="button"
                   onClick={() => setFormData({ ...formData, heroImageUrl: p.url })}
-                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between ${
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${
                     formData.heroImageUrl === p.url
                       ? 'bg-[#ffd9dc] text-[#5d1826] font-semibold border border-[#ffb2ba]'
                       : 'bg-white text-[#544244] hover:bg-[#ebe8e2]'
@@ -170,13 +183,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs text-[#544244] hover:bg-[#ebe8e2] rounded-lg"
+              className="px-4 py-2 text-xs text-[#544244] hover:bg-[#ebe8e2] rounded-lg cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#5d1826] hover:bg-[#7a2e3b] text-white text-xs font-semibold rounded-lg shadow-sm"
+              className={`px-5 py-2 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer ${
+                isAquatic ? 'bg-[#0077b6] hover:bg-[#023e8a]' : 'bg-[#5d1826] hover:bg-[#7a2e3b]'
+              }`}
             >
               Save Keepsake Changes
             </button>

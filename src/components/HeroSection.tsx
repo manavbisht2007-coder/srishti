@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeepsakeSettings, ThemeMode } from '../types';
+import {
+  calculateYearsAndDays,
+  getTimeUntilNextMidnight,
+} from '../utils/dateTracker';
 
 interface HeroSectionProps {
   settings: KeepsakeSettings;
@@ -7,6 +11,7 @@ interface HeroSectionProps {
   onShowerFlowers: () => void;
   onAddMemoryClick: () => void;
   onOpenPhotoLightbox: (imgUrl: string, title: string) => void;
+  onOpenSettings: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -15,10 +20,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onShowerFlowers,
   onAddMemoryClick,
   onOpenPhotoLightbox,
+  onOpenSettings,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [lovedHeart, setLovedHeart] = useState(false);
+  const [countdown, setCountdown] = useState(getTimeUntilNextMidnight());
   const isAquatic = theme === 'aquatic';
+
+  // Live 24-hour countdown ticker
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilNextMidnight());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const { years, totalDays } = calculateYearsAndDays(settings.startDate);
 
   const handleHeartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -28,7 +45,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   return (
     <section className="max-w-[1200px] mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16 w-full flex flex-col items-center text-center relative z-10">
-      {/* Milestone Overline & Counter */}
+      {/* Milestone Overline & Counter (Auto-calculated from Start Date) */}
       <div
         className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full shadow-sm mb-6 border transition-colors ${
           isAquatic
@@ -41,8 +58,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </span>
         <span className="text-[11px] font-bold tracking-widest uppercase font-sans">
           {isAquatic
-            ? `Celebrating ${settings.yearsCount} Boundless Years • ${settings.daysCount.toLocaleString()} Days of Ocean Joy`
-            : `Celebrating ${settings.yearsCount} Cherished Years • ${settings.daysCount.toLocaleString()} Days of Radiance`}
+            ? `Cherishing ${years} Years Together • ${totalDays.toLocaleString()} Days in Our Haven`
+            : `Cherishing ${years} Years Together • ${totalDays.toLocaleString()} Days of Radiance`}
         </span>
         <span className="material-symbols-outlined text-[16px] text-[#735c00]">
           {isAquatic ? 'waves' : 'auto_awesome'}
@@ -205,71 +222,120 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           }`}
           type="button"
         >
-          <span className="material-symbols-outlined text-[20px]">
-            {isAquatic ? 'edit_note' : 'edit_note'}
-          </span>
+          <span className="material-symbols-outlined text-[20px]">edit_note</span>
           <span>{isAquatic ? 'Add Sea Memory & Note' : 'Add Your Memory & Note'}</span>
         </button>
       </div>
 
-      {/* Quick Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl mt-14">
+      {/* NEW: Live 24-Hour Day Counter & Showered Stats (Unwanted stats removed) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-2xl mt-12">
+        {/* Dynamic 24hr Day Counter Card */}
         <div
-          className={`bg-[#ffffff]/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm text-center border hover:-translate-y-0.5 transition-transform ${
-            isAquatic ? 'border-[#caf0f8]' : 'border-[#ffd9dc]/40'
+          onClick={onOpenSettings}
+          title="Click to edit start date or customize sanctuary"
+          className={`bg-[#ffffff]/95 backdrop-blur-md p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-md cursor-pointer group text-left relative overflow-hidden ${
+            isAquatic ? 'border-[#caf0f8] hover:border-[#0077b6]' : 'border-[#ffd9dc] hover:border-[#7a2e3b]'
           }`}
         >
-          <p
-            className={`font-serif text-[32px] md:text-[36px] font-normal leading-none mb-1 ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#5d1826]'
-            }`}
-          >
-            {settings.daysCount.toLocaleString()}
-          </p>
-          <p className="text-xs text-[#544244] font-medium">Days of Unshakable Trust</p>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              {/* Day Counter Animated Icon */}
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 ${
+                  isAquatic
+                    ? 'bg-[#e0fbfc] text-[#0077b6] border border-[#90e0ef]'
+                    : 'bg-[#ffd9dc] text-[#5d1826] border border-[#ffb2ba]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[26px] animate-pulse">
+                  calendar_today
+                </span>
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#735c00] font-sans">
+                    Live 24h Day Tracker
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                </div>
+                <p
+                  className={`font-serif text-[28px] sm:text-[32px] font-semibold leading-none mt-0.5 ${
+                    isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+                  }`}
+                >
+                  Day {totalDays.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <span
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                isAquatic
+                  ? 'bg-[#caf0f8]/60 text-[#0077b6] border-[#90e0ef]'
+                  : 'bg-[#f7f3ed] text-[#7a2e3b] border-[#ffd9dc]'
+              }`}
+            >
+              Since {new Date(settings.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+
+          {/* 24-hr increment status indicator */}
+          <div className="mt-3.5 pt-3 border-t border-black/5 flex items-center justify-between text-xs text-[#544244]">
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px] text-[#735c00]">
+                schedule
+              </span>
+              <span>Next day count in:</span>
+              <span className="font-mono font-bold text-[#5d1826] bg-[#f7f3ed] px-1.5 py-0.5 rounded text-[11px]">
+                {countdown.formatted}
+              </span>
+            </div>
+            <span className="text-[10px] text-[#735c00] font-medium group-hover:underline">
+              Edit date ✎
+            </span>
+          </div>
         </div>
 
+        {/* Petals / Wonders Given Live Counter */}
         <div
-          className={`bg-[#ffffff]/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm text-center border hover:-translate-y-0.5 transition-transform ${
-            isAquatic ? 'border-[#caf0f8]' : 'border-[#ffd9dc]/40'
+          onClick={onShowerFlowers}
+          title="Click to shower more petals or bubbles!"
+          className={`bg-[#ffffff]/95 backdrop-blur-md p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-md cursor-pointer group text-left relative overflow-hidden ${
+            isAquatic ? 'border-[#caf0f8] hover:border-[#0077b6]' : 'border-[#ffd9dc] hover:border-[#7a2e3b]'
           }`}
         >
-          <p
-            className={`font-serif text-[32px] md:text-[36px] font-normal leading-none mb-1 ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#5d1826]'
-            }`}
-          >
-            {settings.tripsCount}+
-          </p>
-          <p className="text-xs text-[#544244] font-medium">Trips & Sunset Escapes</p>
-        </div>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 ${
+                  isAquatic
+                    ? 'bg-[#e0fbfc] text-[#0077b6] border border-[#90e0ef]'
+                    : 'bg-[#fed65b]/30 text-[#735c00] border border-[#fed65b]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[26px]">
+                  {isAquatic ? 'bubble_chart' : 'local_florist'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#735c00] font-sans">
+                  {isAquatic ? 'Bubbles Showered' : 'Petals Tenderly Given'}
+                </span>
+                <p className="font-serif text-[28px] sm:text-[32px] font-semibold text-[#735c00] leading-none mt-0.5">
+                  {settings.petalsGiven.toLocaleString()}
+                </p>
+              </div>
+            </div>
 
-        <div
-          className={`bg-[#ffffff]/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm text-center border hover:-translate-y-0.5 transition-transform ${
-            isAquatic ? 'border-[#caf0f8]' : 'border-[#ffd9dc]/40'
-          }`}
-        >
-          <p
-            className={`font-serif text-[32px] md:text-[36px] font-normal leading-none mb-1 ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#5d1826]'
-            }`}
-          >
-            {settings.voiceNotesCount}+
-          </p>
-          <p className="text-xs text-[#544244] font-medium">Midnight Voice Notes</p>
-        </div>
+            <span className="text-[11px] font-semibold text-[#544244] px-2.5 py-1 rounded-full bg-[#f7f3ed] border border-[#d9c1c2]/50 group-hover:bg-[#ffd9dc] transition-colors">
+              Tap to Shower 🌸
+            </span>
+          </div>
 
-        <div
-          className={`bg-[#ffffff]/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm text-center border hover:-translate-y-0.5 transition-transform ${
-            isAquatic ? 'border-[#caf0f8]' : 'border-[#ffd9dc]/40'
-          }`}
-        >
-          <p className="font-serif text-[32px] md:text-[36px] font-normal text-[#735c00] leading-none mb-1">
-            {settings.petalsGiven.toLocaleString()}
-          </p>
-          <p className="text-xs text-[#544244] font-medium">
-            {isAquatic ? 'Bubbles & Wonders Given' : 'Petals Tenderly Given'}
-          </p>
+          <div className="mt-3.5 pt-3 border-t border-black/5 flex items-center justify-between text-xs text-[#544244]">
+            <span>Click anytime to celebrate with floral & bubble physics</span>
+            <span className="text-sm">✨</span>
+          </div>
         </div>
       </div>
     </section>
