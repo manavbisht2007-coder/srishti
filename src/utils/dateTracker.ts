@@ -14,7 +14,7 @@ export function calculateDaysElapsed(startDateStr: string): number {
 
 export function calculateYearsAndDays(startDateStr: string): { years: number; totalDays: number } {
   const totalDays = calculateDaysElapsed(startDateStr);
-  const years = Math.max(1, Math.floor(totalDays / 365.25));
+  const years = Math.floor(totalDays / 365.25);
   return { years, totalDays };
 }
 

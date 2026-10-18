@@ -154,19 +154,19 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
         <div>
           <span
             className={`text-[11px] font-bold uppercase tracking-widest font-sans ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+              isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
             }`}
           >
             {isAquatic ? 'Ocean Visual Chronicle' : 'Visual Chronicle'}
           </span>
           <h2
             className={`font-serif text-[32px] md:text-[38px] mt-1 font-normal ${
-              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
             }`}
           >
             {isAquatic ? 'Treasured Sea Keepsake Gallery' : 'Treasured Keepsake Gallery'}
           </h2>
-          <p className="text-sm md:text-base text-[#544244] mt-1">
+          <p className="text-sm md:text-base text-[#831843] mt-1">
             Candid frames, honest moments, and laughter etched in amber light.
           </p>
         </div>
@@ -181,8 +181,8 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 filter === cat
                   ? isAquatic
                     ? 'bg-[#0077b6] text-white shadow-sm'
-                    : 'bg-[#5d1826] text-white shadow-sm'
-                  : 'bg-[#ffffff]/80 text-[#544244] hover:bg-white border border-[#d9c1c2]/40'
+                    : 'bg-gradient-to-r from-[#ec4899] to-[#f43f5e] text-white shadow-sm'
+                  : 'bg-[#ffffff]/90 text-[#831843] hover:bg-white border border-[#fbcfe8]'
               }`}
               type="button"
             >
@@ -201,21 +201,21 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       {/* Gallery Grid with Upload Slot */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {/* Interactive Upload Card */}
-        <div className="bg-[#ffffff]/90 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-[#ffd9dc]/60 flex flex-col justify-between group transition-all duration-300 hover:shadow-md">
+        <div className="bg-[#ffffff]/95 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-[#fbcfe8] flex flex-col justify-between group transition-all duration-300 hover:shadow-md">
           <form onSubmit={handleSubmitUpload} className="flex flex-col h-full justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-bold text-[#5d1826] uppercase font-sans">
+                <span className="text-[11px] font-bold text-[#db2777] uppercase font-sans">
                   Add Your Frame
                 </span>
-                <span className="material-symbols-outlined text-[#735c00] text-[20px]">
+                <span className="material-symbols-outlined text-pink-500 text-[20px]">
                   add_photo_alternate
                 </span>
               </div>
-              <p className="font-serif text-[20px] font-semibold text-[#5d1826] mb-1">
+              <p className="font-serif text-[20px] font-semibold text-[#9d174d] mb-1">
                 Upload a Memory
               </p>
-              <p className="text-xs text-[#544244] mb-4">
+              <p className="text-xs text-[#831843] mb-4">
                 Add your favorite candid snapshot to this shared treasure chest.
               </p>
 
@@ -224,7 +224,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-6 px-4 bg-[#f7f3ed]/70 hover:bg-[#ebe8e2]/80 border border-dashed border-[#d9c1c2] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors relative overflow-hidden"
+                className="w-full py-6 px-4 bg-[#fff0f5]/80 hover:bg-[#fce7f3]/80 border border-dashed border-[#fbcfe8] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors relative overflow-hidden"
               >
                 {previewImage ? (
                   <div className="relative w-full h-32 rounded-lg overflow-hidden">
@@ -239,13 +239,13 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                   </div>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-[32px] text-[#5d1826]/70 mb-2">
+                    <span className="material-symbols-outlined text-[32px] text-[#db2777]/70 mb-2">
                       cloud_upload
                     </span>
-                    <span className="text-xs font-semibold text-[#5d1826]">
+                    <span className="text-xs font-semibold text-[#db2777]">
                       Drop a favorite photo here
                     </span>
-                    <span className="text-[11px] text-[#544244] mt-0.5">or browse your library</span>
+                    <span className="text-[11px] text-[#831843] mt-0.5">or browse your library</span>
                   </>
                 )}
                 <input
@@ -332,10 +332,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
             <button
               className={`mt-5 w-full py-2.5 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                 isPinnedFeedback
-                  ? 'bg-[#735c00] text-white'
+                  ? 'bg-pink-600 text-white'
                   : isAquatic
                   ? 'bg-[#0077b6] text-white hover:bg-[#023e8a]'
-                  : 'bg-[#5d1826] text-white hover:bg-[#7a2e3b]'
+                  : 'bg-gradient-to-r from-[#ec4899] to-[#f43f5e] text-white hover:from-[#db2777] hover:to-[#e11d48]'
               }`}
               type="submit"
             >
@@ -349,13 +349,13 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
           <div
             key={card.id}
             className={`bg-[#ffffff] p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col border hover:-translate-y-1 group relative ${
-              isAquatic ? 'border-[#caf0f8]' : 'border-[#ffd9dc]/40'
+              isAquatic ? 'border-[#caf0f8]' : 'border-[#fbcfe8] hover:border-[#ec4899]'
             }`}
           >
             {/* Image Frame */}
             <div
               onClick={() => onOpenLightbox(card)}
-              className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#f1ede7] shadow-inner mb-4 cursor-pointer"
+              className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#fff0f5] shadow-inner mb-4 cursor-pointer"
             >
               <img
                 alt={card.title}
@@ -363,7 +363,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 src={card.imageUrl}
                 loading="lazy"
               />
-              <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-[10px] font-bold text-[#5d1826] uppercase font-sans tracking-wider shadow-2xs">
+              <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[10px] font-bold text-[#db2777] uppercase font-sans tracking-wider shadow-2xs">
                 {card.tag}
               </span>
 
@@ -376,7 +376,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                     openEditModal(card);
                   }}
                   title="Edit Memory"
-                  className="w-7 h-7 rounded-full bg-white/90 text-[#544244] hover:text-[#5d1826] hover:bg-white flex items-center justify-center shadow-xs cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-white/90 text-[#831843] hover:text-[#db2777] hover:bg-white flex items-center justify-center shadow-xs cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[15px]">edit</span>
                 </button>
@@ -387,7 +387,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                     onDeleteMemory(card.id);
                   }}
                   title="Delete Memory"
-                  className="w-7 h-7 rounded-full bg-white/90 text-[#544244] hover:text-red-600 hover:bg-white flex items-center justify-center shadow-xs cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-white/90 text-[#831843] hover:text-red-600 hover:bg-white flex items-center justify-center shadow-xs cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[15px]">delete</span>
                 </button>
@@ -401,7 +401,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
             {/* Meta row */}
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-[#735c00] uppercase tracking-wider font-sans">
+              <span className="text-[11px] font-bold text-pink-600 uppercase tracking-wider font-sans">
                 {card.date}
               </span>
               <button
@@ -410,38 +410,38 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                   onLikeMemory(card.id);
                   onShowerFlowers();
                 }}
-                className="flex items-center gap-1 text-[#544244] hover:text-[#5d1826] transition-colors cursor-pointer group/like"
+                className="flex items-center gap-1 text-[#831843] hover:text-[#db2777] transition-colors cursor-pointer group/like"
               >
-                <span className="material-symbols-outlined text-[18px] group-hover/like:scale-125 transition-transform text-[#5d1826]">
+                <span className="material-symbols-outlined text-[18px] group-hover/like:scale-125 transition-transform text-[#ec4899]">
                   favorite
                 </span>
-                <span className="text-xs font-semibold text-[#544244]">{card.likes}</span>
+                <span className="text-xs font-semibold text-[#831843]">{card.likes}</span>
               </button>
             </div>
 
             <p
               onClick={() => onOpenLightbox(card)}
               className={`font-serif text-[20px] font-semibold mb-1 cursor-pointer hover:underline ${
-                isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+                isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
               }`}
             >
               {card.title}
             </p>
 
-            <p className="font-serif italic text-[#544244] text-[15px] leading-relaxed line-clamp-3">
+            <p className="font-serif italic text-[#4a1525] text-[15px] leading-relaxed line-clamp-3">
               {card.caption}
             </p>
 
-            <div className="mt-auto pt-4 flex items-center justify-between border-t border-[#f1ede7]">
+            <div className="mt-auto pt-4 flex items-center justify-between border-t border-pink-100">
               <div className="flex items-center gap-2">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    isAquatic ? 'bg-[#caf0f8] text-[#0077b6]' : 'bg-[#ffd9dc] text-[#3f0111]'
+                    isAquatic ? 'bg-[#caf0f8] text-[#0077b6]' : 'bg-[#fce7f3] text-[#be185d]'
                   }`}
                 >
                   {card.authorInitial}
                 </div>
-                <span className="text-xs text-[#544244] font-medium">Pinned by {card.author}</span>
+                <span className="text-xs text-[#831843] font-medium">Pinned by {card.author}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button

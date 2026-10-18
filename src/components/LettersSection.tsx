@@ -121,7 +121,7 @@ export const LettersSection: React.FC<LettersSectionProps> = ({
     <section
       id="heartfelt-letters"
       className={`w-full py-16 md:py-24 border-y transition-colors duration-500 relative z-10 ${
-        isAquatic ? 'bg-[#caf0f8]/20 border-[#caf0f8]' : 'bg-[#f7f3ed]/60 border-[#ffd9dc]/40'
+        isAquatic ? 'bg-[#caf0f8]/20 border-[#caf0f8]' : 'bg-[#fff5f8]/75 border-[#fbcfe8]/70'
       }`}
     >
       <div className="max-w-[1200px] mx-auto px-4 md:px-8">
@@ -129,31 +129,31 @@ export const LettersSection: React.FC<LettersSectionProps> = ({
         <div className="flex flex-col items-center text-center mb-12">
           <span
             className={`text-[11px] font-bold uppercase tracking-widest font-sans ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+              isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
             }`}
           >
             {isAquatic ? 'Bottled Messages & Ocean Notes' : 'Words For The Heart'}
           </span>
           <h2
             className={`font-serif text-[32px] md:text-[38px] mt-1 font-normal ${
-              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
             }`}
           >
             {isAquatic ? 'Bottled Letters & Envelopes' : 'Keepsake Letters & Envelopes'}
           </h2>
-          <p className="text-sm md:text-base text-[#544244] max-w-lg mt-2 leading-relaxed">
+          <p className="text-sm md:text-base text-[#831843] max-w-lg mt-2 leading-relaxed">
             Treasured notes sealed with tenderness, meant to be uncurled whenever you need a reminder of who you are to us.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Folded Stationery & Open When Envelopes */}
-          <div className="lg:col-span-7 bg-[#ffffff] rounded-3xl p-6 md:p-8 shadow-md border border-[#ffd9dc]/50">
-            <div className="flex items-center justify-between pb-6 border-b border-[#f1ede7]">
+          <div className="lg:col-span-7 bg-[#ffffff] rounded-3xl p-6 md:p-8 shadow-md border border-[#fbcfe8]">
+            <div className="flex items-center justify-between pb-6 border-b border-pink-100">
               <div className="flex items-center gap-3">
                 <span
                   className={`material-symbols-outlined text-[28px] ${
-                    isAquatic ? 'text-[#0077b6]' : 'text-[#5d1826]'
+                    isAquatic ? 'text-[#0077b6]' : 'text-[#ec4899]'
                   }`}
                 >
                   markunread_mailbox
@@ -161,14 +161,14 @@ export const LettersSection: React.FC<LettersSectionProps> = ({
                 <div>
                   <span
                     className={`text-[11px] font-bold uppercase font-sans ${
-                      isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+                      isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
                     }`}
                   >
                     Folded Stationery
                   </span>
                   <h3
                     className={`font-serif text-[20px] md:text-[22px] font-semibold ${
-                      isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+                      isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
                     }`}
                   >
                     {mainLetterTitle}
@@ -186,7 +186,7 @@ export const LettersSection: React.FC<LettersSectionProps> = ({
                     setShowEditMainModal(true);
                   }}
                   title="Edit this letter's message"
-                  className="p-1.5 rounded-full text-[#544244] hover:text-[#5d1826] hover:bg-[#ebe8e2] transition-colors cursor-pointer"
+                  className="p-1.5 rounded-full text-[#831843] hover:text-[#db2777] hover:bg-[#fff0f5] transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px]">edit</span>
                 </button>
@@ -196,7 +196,7 @@ export const LettersSection: React.FC<LettersSectionProps> = ({
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full transition-all cursor-pointer border text-xs font-semibold shadow-2xs active:scale-95 ${
                     isAquatic
                       ? 'bg-[#caf0f8] text-[#03045e] hover:bg-[#90e0ef] border-[#90e0ef]'
-                      : 'bg-[#f7f3ed] text-[#5d1826] hover:bg-[#ebe8e2] border-[#ffd9dc]'
+                      : 'bg-[#fff0f5] text-[#db2777] hover:bg-[#fce7f3] border-[#fbcfe8]'
                   }`}
                 >
                   <span>{isLetterUnsealed ? 'Fold Letter' : 'Break Wax Seal'}</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PetalCanvas, PetalCanvasHandle } from './components/PetalCanvas';
 import { AquaticBackground } from './components/AquaticBackground';
+import { RomanticBackground } from './components/RomanticBackground';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { TimelineSection } from './components/TimelineSection';
@@ -12,7 +13,6 @@ import { Footer } from './components/Footer';
 import { OpenWhenModal } from './components/OpenWhenModal';
 import { CertificateModal } from './components/CertificateModal';
 import { MemoryModal } from './components/MemoryModal';
-import { SettingsModal } from './components/SettingsModal';
 import {
   Milestone,
   MemoryItem,
@@ -30,16 +30,16 @@ import {
 } from './utils/sound';
 
 const DEFAULT_SETTINGS: KeepsakeSettings = {
-  recipientName: 'For My Favorite Person',
-  subtitle: 'An Enduring Keepsake',
-  startDate: '2021-10-04', // 5 years from current 2026 = Day 1,826
+  recipientName: 'Srishti and Manav',
+  subtitle: 'Shishi- My kuch puchuu',
+  startDate: '2025-12-01', // 1st December 2025
   petalsGiven: 1420,
   mainQuote:
-    'A companion for quiet midnights, endless laughter under golden sunbeams, and the gentle beauty of feeling completely at home.',
+    'From a long-distance spark to right here in my arms',
   heroImageUrl:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBrl9gYx78SUS7omxQOos2juTyjesBhhbF8zZNesct8MqT9_b0ELvIatWQVfNC9GdLtg0p4ohQcUQKvNULaU6qONuUFWdPESiK9OXzU6Ms9254Z1DFhpttFdeRzFV5tz4Gpt63DAKVCKvDl8xBM7NXbko9SxQhXlWtnZvTH1-Io6Y6nDgpVoSoSLZhARPoxs1dVAp7QYgfR_5fYankrtto_hXfBlrV6fdsIM_O3FtUe1Ut756a83lzz',
-  heroPhotoLabel: 'An Endless Springtime',
-  heroPhotoSub: 'Favorite Soul',
+  heroPhotoLabel: 'Srishti & Manav',
+  heroPhotoSub: 'Forever & Always',
   mainLetterTitle: 'A Letter For When You Need a Smile',
   mainLetterContent: `If you are reading this on an ordinary Tuesday or on an evening when the world feels slightly too heavy, I want you to take a slow breath and remember something simple:\n\n“You have this quiet, effortless magic of making spaces feel softer and people feel understood. You never ask for the spotlight, yet everyone in your presence blooms a little wider.”\n\nThank you for laughing at my worst puns, for holding my silence when words were too messy, and for celebrating every little victory like it was the world cup. Meeting you wasn’t luck—it was grace. Here’s to every horizon we haven't crossed yet.`,
 };
@@ -236,7 +236,14 @@ export default function App() {
     const cached = localStorage.getItem('rosewood_settings');
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        return {
+          ...parsed,
+          recipientName: 'Srishti and Manav',
+          subtitle: 'Shishi- My kuch puchuu',
+          startDate: '2025-12-01',
+          mainQuote: 'From a long-distance spark to right here in my arms',
+        };
       } catch {
         return DEFAULT_SETTINGS;
       }
@@ -298,7 +305,6 @@ export default function App() {
   const [selectedLetter, setSelectedLetter] = useState<LetterItem | null>(null);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Sync state to localStorage
   useEffect(() => {
@@ -487,7 +493,7 @@ export default function App() {
       className={`relative min-h-screen transition-colors duration-700 font-sans antialiased overflow-x-hidden ${
         isAquatic
           ? 'bg-gradient-to-b from-[#f0f8ff] via-[#e6f4f8] to-[#edf7fa] text-[#03045e] selection:bg-[#caf0f8] selection:text-[#0077b6]'
-          : 'bg-[#fdf9f3] text-[#1c1c18] selection:bg-[#ffd9dc] selection:text-[#3f0111]'
+          : 'bg-gradient-to-b from-[#fff5f8] via-[#ffeaf1] to-[#fff0f6] text-[#4a1525] selection:bg-[#fbcfe8] selection:text-[#831843]'
       }`}
     >
       {/* 1. Only showers when button is pushed: Petal/Bubble Canvas */}
@@ -502,7 +508,7 @@ export default function App() {
         }}
       />
 
-      {/* 2. Background animations based on selected theme */}
+      {/* 2. Background continuous animations based on selected theme */}
       {isAquatic ? (
         <>
           {/* Animated cute cartoon seals, otters, sharks, beluga whales, and normal whales! */}
@@ -513,44 +519,28 @@ export default function App() {
         </>
       ) : (
         <>
-          {/* Romantic ambient glow blobs */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#ffd9dc]/20 blur-[140px] rounded-full pointer-events-none -z-10" />
-          <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#fed65b]/20 blur-[130px] rounded-full pointer-events-none -z-10" />
-          <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#ffb2ba]/25 blur-[150px] rounded-full pointer-events-none -z-10" />
+          {/* Sweet Romantic continuous motion: flying love doves with roses, winged love letters, chibi cupid, heart hot air balloon, swans, and floating hearts! */}
+          <RomanticBackground />
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#fbcfe8]/45 blur-[140px] rounded-full pointer-events-none -z-10" />
+          <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#f472b6]/25 blur-[130px] rounded-full pointer-events-none -z-10" />
+          <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#fda4af]/35 blur-[150px] rounded-full pointer-events-none -z-10" />
         </>
       )}
 
-      {/* Floating Shower Widget */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        <div
-          className={`hidden sm:flex items-center gap-2 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border transition-colors ${
-            isAquatic
-              ? 'bg-[#ffffff]/90 border-[#90e0ef] text-[#0077b6]'
-              : 'bg-[#ffffff]/90 border-[#ffd9dc]/60 text-[#5d1826]'
-          }`}
-        >
-          <span
-            className={`w-2 h-2 rounded-full animate-pulse ${
-              isAquatic ? 'bg-[#0077b6]' : 'bg-[#735c00]'
-            }`}
-          />
-          <span className="text-xs font-semibold">
-            {settings.petalsGiven.toLocaleString()}{' '}
-            {isAquatic ? 'Bubbles Showered' : 'Petals Showered'}
-          </span>
-        </div>
+      {/* Floating Single Shower Action Button (No count badge anywhere as requested) */}
+      <div className="fixed bottom-6 right-6 z-40 flex items-center">
         <button
           aria-label={isAquatic ? 'Trigger Bubble Shower' : 'Trigger Petal Shower'}
           onClick={() => handleShowerPetals(40)}
-          className={`relative group p-3.5 text-white rounded-full shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer border ${
+          className={`relative group p-4 text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer border ${
             isAquatic
-              ? 'bg-[#0077b6] hover:bg-[#023e8a] border-[#caf0f8] hover:shadow-[0_0_24px_rgba(72,202,228,0.5)]'
-              : 'bg-[#5d1826] hover:bg-[#7a2e3b] border-[#ffe088]/40 hover:shadow-[0_0_24px_rgba(212,175,55,0.45)]'
+              ? 'bg-[#0077b6] hover:bg-[#023e8a] border-[#caf0f8] shadow-[0_8px_24px_rgba(0,119,182,0.4)]'
+              : 'bg-gradient-to-tr from-[#ec4899] to-[#f43f5e] hover:from-[#db2777] hover:to-[#e11d48] border-[#fce7f3] shadow-[0_8px_24px_rgba(236,72,153,0.4)]'
           }`}
           type="button"
-          title={isAquatic ? 'Shower bubbles & sea stars' : 'Shower petals'}
+          title={isAquatic ? 'Shower sea bubbles & pearls' : 'Shower flower petals'}
         >
-          <span className="material-symbols-outlined text-[24px] text-[#ffe088] transition-transform group-hover:rotate-45">
+          <span className="material-symbols-outlined text-[26px] text-[#ffe088] transition-transform group-hover:rotate-45">
             {isAquatic ? 'bubble_chart' : 'local_florist'}
           </span>
           <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -570,14 +560,10 @@ export default function App() {
 
       {/* Header with Theme Slider Switch */}
       <Header
-        activeSection={activeSection}
         theme={theme}
         onToggleTheme={handleToggleTheme}
-        onNavigate={handleNavigate}
-        onShowerFlowers={() => handleShowerPetals(50)}
         isMusicPlaying={isMusicPlaying}
         onToggleMusic={handleToggleMusic}
-        onOpenSettings={() => setIsSettingsOpen(true)}
         recipientName={settings.recipientName}
         subtitle={settings.subtitle}
       />
@@ -588,10 +574,8 @@ export default function App() {
         <HeroSection
           settings={settings}
           theme={theme}
-          onShowerFlowers={() => handleShowerPetals(60)}
           onAddMemoryClick={() => handleNavigate('wish-wall')}
           onOpenPhotoLightbox={handleOpenPhotoLightbox}
-          onOpenSettings={() => setIsSettingsOpen(true)}
         />
 
         {/* Timeline Section with Edit & Delete */}
@@ -646,7 +630,6 @@ export default function App() {
         {/* Celebration Banner */}
         <CelebrationBanner
           theme={theme}
-          onShower100Petals={() => handleShowerPetals(100)}
         />
       </main>
 
@@ -675,15 +658,6 @@ export default function App() {
         onClose={() => setSelectedMemory(null)}
         onLike={handleLikeMemory}
         onShowerFlowers={() => handleShowerPetals(25)}
-      />
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        theme={theme}
-        onClose={() => setIsSettingsOpen(false)}
-        settings={settings}
-        onSave={(newSettings) => setSettings(newSettings)}
-        onShowerFlowers={() => handleShowerPetals(35)}
       />
     </div>
   );

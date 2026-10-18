@@ -88,26 +88,26 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
       className={`w-full py-16 md:py-24 border-y transition-colors duration-500 relative z-10 ${
         isAquatic
           ? 'bg-[#e0fbfc]/30 border-[#caf0f8]'
-          : 'bg-[#f7f3ed]/70 border-[#ffd9dc]/40'
+          : 'bg-[#fff5f8]/75 border-[#fbcfe8]/70'
       }`}
     >
       <div className="max-w-[1200px] mx-auto px-4 md:px-8">
         <div className="flex flex-col items-center text-center mb-14">
           <span
             className={`text-[11px] font-bold uppercase tracking-widest font-sans ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+              isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
             }`}
           >
             {isAquatic ? 'Voyage Log & Milestones' : 'Chapters In Bloom'}
           </span>
           <h2
             className={`font-serif text-[32px] md:text-[38px] mt-1 font-normal ${
-              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
             }`}
           >
             {isAquatic ? 'Our Ocean Journey Through Time' : 'Our Journey Through Time'}
           </h2>
-          <p className="text-sm md:text-base text-[#544244] max-w-lg mt-2 leading-relaxed">
+          <p className="text-sm md:text-base text-[#831843] max-w-lg mt-2 leading-relaxed">
             The unforgettable stepping stones that brought us from quiet strangers to irreplaceable soulmates.
           </p>
 
@@ -117,10 +117,10 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
             className={`mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold shadow-xs hover:shadow-md border transition-all hover:scale-105 active:scale-95 cursor-pointer ${
               isAquatic
                 ? 'bg-white text-[#0077b6] border-[#90e0ef]'
-                : 'bg-white text-[#5d1826] border-[#ffd9dc]'
+                : 'bg-white text-[#db2777] border-[#fbcfe8] hover:bg-[#fff0f5]'
             }`}
           >
-            <span className="material-symbols-outlined text-[16px] text-[#735c00]">add_circle</span>
+            <span className="material-symbols-outlined text-[16px] text-pink-500">add_circle</span>
             <span>Add a Chapter to Timeline</span>
           </button>
         </div>
@@ -130,13 +130,13 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
           {/* Connecting Hairline Stem Track */}
           <div
             className={`absolute left-4 md:left-1/2 -translate-x-1/2 top-4 bottom-4 w-0.5 ${
-              isAquatic ? 'bg-[#90e0ef]/70' : 'bg-[#d9c1c2]/70'
+              isAquatic ? 'bg-[#90e0ef]/70' : 'bg-[#f472b6]/50'
             }`}
           />
 
           <div className="space-y-12 relative">
             {milestones.length === 0 ? (
-              <div className="text-center py-12 text-[#877274] bg-white/70 rounded-2xl border border-dashed border-[#d9c1c2]">
+              <div className="text-center py-12 text-[#db2777] bg-white/80 rounded-2xl border border-dashed border-[#fbcfe8]">
                 <p className="font-serif text-lg">No chapters yet.</p>
                 <p className="text-xs mt-1">Click "Add a Chapter to Timeline" above to write your first milestone!</p>
               </div>
@@ -160,7 +160,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                           <div className="flex items-center justify-start md:justify-end gap-2">
                             <span
                               className={`text-[11px] font-bold tracking-wider uppercase font-sans ${
-                                isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+                                isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
                               }`}
                             >
                               {milestone.date} • {milestone.chapter}
@@ -170,14 +170,14 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                               <button
                                 onClick={() => openEditModal(milestone)}
                                 title="Edit Chapter"
-                                className="p-1 hover:text-[#5d1826] cursor-pointer text-[#877274]"
+                                className="p-1 hover:text-[#be185d] cursor-pointer text-[#db2777]/80"
                               >
                                 <span className="material-symbols-outlined text-[15px]">edit</span>
                               </button>
                               <button
                                 onClick={() => onDeleteMilestone(milestone.id)}
                                 title="Delete Chapter"
-                                className="p-1 hover:text-red-600 cursor-pointer text-[#877274]"
+                                className="p-1 hover:text-red-600 cursor-pointer text-[#db2777]/80"
                               >
                                 <span className="material-symbols-outlined text-[15px]">delete</span>
                               </button>
@@ -185,17 +185,17 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                           </div>
                           <h3
                             className={`font-serif text-[20px] md:text-[22px] font-semibold mt-1 ${
-                              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+                              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
                             }`}
                           >
                             {milestone.title}
                           </h3>
-                          <p className="text-sm md:text-[15px] text-[#544244] mt-1.5 leading-relaxed">
+                          <p className="text-sm md:text-[15px] text-[#4a1525] mt-1.5 leading-relaxed">
                             {milestone.description}
                           </p>
                         </div>
                       ) : (
-                        <div className="hidden md:inline-block px-3.5 py-1.5 bg-[#e6e2dc] rounded-lg text-xs font-semibold text-[#544244] shadow-2xs border border-white/60">
+                        <div className="hidden md:inline-block px-3.5 py-1.5 bg-[#fff0f5] rounded-lg text-xs font-semibold text-[#db2777] shadow-2xs border border-[#fbcfe8]">
                           {milestone.location}
                         </div>
                       )}
@@ -204,10 +204,10 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                     {/* Marker Node in Center */}
                     <div
                       className={`absolute left-4 md:left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-[#ffffff] shadow-md flex items-center justify-center group-hover:scale-125 transition-transform duration-300 z-10 border ${
-                        isAquatic ? 'text-[#0077b6] border-[#90e0ef]' : 'text-[#5d1826] border-[#ffd9dc]'
+                        isAquatic ? 'text-[#0077b6] border-[#90e0ef]' : 'text-[#ec4899] border-[#fbcfe8]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px] text-[#735c00]">
+                      <span className="material-symbols-outlined text-[18px]">
                         {milestone.icon}
                       </span>
                     </div>
@@ -219,7 +219,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                       }`}
                     >
                       {isEven ? (
-                        <div className="inline-block px-3.5 py-1.5 bg-[#e6e2dc] rounded-lg text-xs font-semibold text-[#544244] shadow-2xs border border-white/60">
+                        <div className="inline-block px-3.5 py-1.5 bg-[#fff0f5] rounded-lg text-xs font-semibold text-[#db2777] shadow-2xs border border-[#fbcfe8]">
                           {milestone.location}
                         </div>
                       ) : (
@@ -227,7 +227,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                           <div className="flex items-center gap-2">
                             <span
                               className={`text-[11px] font-bold tracking-wider uppercase font-sans ${
-                                isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+                                isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
                               }`}
                             >
                               {milestone.date} • {milestone.chapter}
@@ -237,14 +237,14 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                               <button
                                 onClick={() => openEditModal(milestone)}
                                 title="Edit Chapter"
-                                className="p-1 hover:text-[#5d1826] cursor-pointer text-[#877274]"
+                                className="p-1 hover:text-[#be185d] cursor-pointer text-[#db2777]/80"
                               >
                                 <span className="material-symbols-outlined text-[15px]">edit</span>
                               </button>
                               <button
                                 onClick={() => onDeleteMilestone(milestone.id)}
                                 title="Delete Chapter"
-                                className="p-1 hover:text-red-600 cursor-pointer text-[#877274]"
+                                className="p-1 hover:text-red-600 cursor-pointer text-[#db2777]/80"
                               >
                                 <span className="material-symbols-outlined text-[15px]">delete</span>
                               </button>
@@ -252,15 +252,15 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                           </div>
                           <h3
                             className={`font-serif text-[20px] md:text-[22px] font-semibold mt-1 ${
-                              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+                              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
                             }`}
                           >
                             {milestone.title}
                           </h3>
-                          <p className="text-sm md:text-[15px] text-[#544244] mt-1.5 leading-relaxed">
+                          <p className="text-sm md:text-[15px] text-[#4a1525] mt-1.5 leading-relaxed">
                             {milestone.description}
                           </p>
-                          <div className="md:hidden mt-2 inline-block px-3.5 py-1.5 bg-[#e6e2dc] rounded-lg text-xs font-semibold text-[#544244]">
+                          <div className="md:hidden mt-2 inline-block px-3.5 py-1.5 bg-[#fff0f5] rounded-lg text-xs font-semibold text-[#db2777] border border-[#fbcfe8]">
                             {milestone.location}
                           </div>
                         </div>

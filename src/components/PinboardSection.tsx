@@ -103,41 +103,41 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
       <div className="flex flex-col items-center text-center mb-12">
         <span
           className={`text-[11px] font-bold uppercase tracking-widest font-sans ${
-            isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
+            isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
           }`}
         >
           {isAquatic ? 'Kind Sea Notes & Wishes' : 'Kind Wishes & Sticky Notes'}
         </span>
         <h2
           className={`font-serif text-[32px] md:text-[38px] mt-1 font-normal ${
-            isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+            isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
           }`}
         >
           {isAquatic ? 'The Warm Ocean Pinboard' : 'The Warm Friendship Pinboard'}
         </h2>
-        <p className="text-sm md:text-base text-[#544244] max-w-lg mt-2 leading-relaxed">
+        <p className="text-sm md:text-base text-[#831843] max-w-lg mt-2 leading-relaxed">
           Pin a sticker, leave an inside joke, or write a blessing for her journey ahead.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Interactive Note Creator Form */}
-        <div className="lg:col-span-5 bg-[#ffffff] rounded-3xl p-6 md:p-8 shadow-md border border-[#ffd9dc]/60">
+        <div className="lg:col-span-5 bg-[#ffffff] rounded-3xl p-6 md:p-8 shadow-md border border-[#fbcfe8]">
           <h3
             className={`font-serif text-[20px] font-semibold mb-1 ${
-              isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
+              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
             }`}
           >
             Pin Your Heartfelt Wish
           </h3>
-          <p className="text-xs text-[#544244] mb-6">
+          <p className="text-xs text-[#831843] mb-6">
             Leave a warm token to adorn her perpetual memory wall.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
-                className="block text-[11px] font-bold text-[#544244] mb-1 uppercase font-sans"
+                className="block text-[11px] font-bold text-[#831843] mb-1 uppercase font-sans"
                 htmlFor="sender-name"
               >
                 Your Name / Nickname
@@ -149,13 +149,13 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
                 placeholder="e.g. Your Partner in Crime"
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg bg-[#f7f3ed] text-[#1c1c18] text-sm placeholder:italic placeholder:text-[#877274] focus:outline-none focus:bg-[#ebe8e2] border border-[#d9c1c2]/50 transition-all"
+                className="w-full px-4 py-2.5 rounded-lg bg-[#fff0f5] text-[#1c1c18] text-sm placeholder:italic placeholder:text-[#be185d]/60 focus:outline-none focus:bg-[#fce7f3] border border-[#fbcfe8] transition-all"
               />
             </div>
 
             <div>
               <label
-                className="block text-[11px] font-bold text-[#544244] mb-1 uppercase font-sans"
+                className="block text-[11px] font-bold text-[#831843] mb-1 uppercase font-sans"
                 htmlFor="note-content"
               >
                 Your Tribute Note
@@ -167,12 +167,12 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
                 placeholder="Write something heartfelt, nostalgic, or hilarious..."
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg bg-[#f7f3ed] text-[#1c1c18] text-sm placeholder:italic placeholder:text-[#877274] focus:outline-none focus:bg-[#ebe8e2] border border-[#d9c1c2]/50 transition-all font-serif italic"
+                className="w-full px-4 py-2.5 rounded-lg bg-[#fff0f5] text-[#1c1c18] text-sm placeholder:italic placeholder:text-[#be185d]/60 focus:outline-none focus:bg-[#fce7f3] border border-[#fbcfe8] transition-all font-serif italic"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#544244] mb-2 uppercase font-sans">
+              <label className="block text-[11px] font-bold text-[#831843] mb-2 uppercase font-sans">
                 Choose a Washi Stamp
               </label>
               <div className="flex flex-wrap items-center gap-2">
@@ -185,8 +185,8 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
                       selectedStamp === stamp
                         ? isAquatic
                           ? 'bg-[#caf0f8] ring-2 ring-[#0077b6] scale-110 shadow-sm'
-                          : 'bg-[#ffd9dc] ring-2 ring-[#5d1826] scale-110 shadow-sm'
-                        : 'bg-[#f1ede7] hover:bg-[#ebe8e2] hover:scale-105'
+                          : 'bg-[#fce7f3] ring-2 ring-[#ec4899] scale-110 shadow-sm'
+                        : 'bg-[#fff0f5] hover:bg-[#fce7f3] hover:scale-105'
                     }`}
                   >
                     {stamp}
@@ -196,7 +196,7 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#544244] mb-1.5 uppercase font-sans">
+              <label className="block text-[11px] font-bold text-[#831843] mb-1.5 uppercase font-sans">
                 Select or Add Hashtag
               </label>
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -212,8 +212,8 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
                       selectedTag === tag && !customTag
                         ? isAquatic
                           ? 'bg-[#0077b6] text-white font-semibold'
-                          : 'bg-[#7a2e3b] text-white font-semibold'
-                        : 'bg-[#f1ede7] text-[#544244] hover:bg-[#ffd9dc]'
+                          : 'bg-gradient-to-r from-[#ec4899] to-[#f43f5e] text-white font-semibold'
+                        : 'bg-[#fff0f5] text-[#831843] hover:bg-[#fce7f3]'
                     }`}
                   >
                     {tag}
@@ -225,7 +225,7 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
                 placeholder="Or custom tag (e.g. #foreverFriends)"
                 value={customTag}
                 onChange={(e) => setCustomTag(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-lg bg-[#f7f3ed] text-[#1c1c18] border border-[#d9c1c2]/50 outline-none"
+                className="w-full px-3 py-1.5 text-xs rounded-lg bg-[#fff0f5] text-[#1c1c18] border border-[#fbcfe8] outline-none"
               />
             </div>
 
@@ -233,10 +233,10 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
               type="submit"
               className={`w-full py-3.5 rounded-lg text-sm font-semibold shadow-sm transition-all cursor-pointer ${
                 isPinnedSuccess
-                  ? 'bg-[#735c00] text-white'
+                  ? 'bg-pink-600 text-white'
                   : isAquatic
                   ? 'bg-[#0077b6] text-white hover:bg-[#023e8a]'
-                  : 'bg-[#5d1826] text-white hover:bg-[#7a2e3b] hover:shadow-[0_0_16px_rgba(212,175,55,0.3)] active:scale-95'
+                  : 'bg-gradient-to-r from-[#ec4899] to-[#f43f5e] text-white hover:from-[#db2777] hover:to-[#e11d48] shadow-[0_8px_20px_rgba(236,72,153,0.3)] active:scale-95'
               }`}
             >
               {isPinnedSuccess ? 'Pinned With Love to Wall 📌🌸' : 'Pin to Friendship Wall 📌'}
@@ -247,26 +247,26 @@ export const PinboardSection: React.FC<PinboardSectionProps> = ({
         {/* Pastel Pinboard Grid */}
         <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {wishes.length === 0 ? (
-            <div className="sm:col-span-2 p-8 text-center text-sm text-[#877274] bg-[#f7f3ed] rounded-2xl border border-dashed border-[#d9c1c2]">
+            <div className="sm:col-span-2 p-8 text-center text-sm text-[#831843] bg-white/80 rounded-2xl border border-dashed border-[#fbcfe8]">
               No notes on the wall yet. Pin your first wish using the form on the left!
             </div>
           ) : (
             wishes.map((wish) => {
-              let bgClass = 'bg-[#f7f3ed]';
-              let tapeClass = 'bg-[#ffe088]/60';
+              let bgClass = 'bg-[#fff0f5] border border-[#fbcfe8]';
+              let tapeClass = 'bg-[#f472b6]/40';
 
               if (isAquatic) {
                 bgClass = 'bg-[#e0fbfc]/70 border border-[#90e0ef]/60';
                 tapeClass = 'bg-[#48cae4]/50';
               } else if (wish.colorTheme === 'rose') {
-                bgClass = 'bg-[#ffd9dc]/40 border border-[#ffb2ba]/50';
-                tapeClass = 'bg-[#7a2e3b]/25';
+                bgClass = 'bg-[#fce7f3]/90 border border-[#fbcfe8]';
+                tapeClass = 'bg-[#ec4899]/35';
               } else if (wish.colorTheme === 'gold') {
-                bgClass = 'bg-[#fed65b]/20 border border-[#fed65b]/40';
-                tapeClass = 'bg-[#e9c349]/50';
+                bgClass = 'bg-[#fff5eb] border border-[#fed7aa]';
+                tapeClass = 'bg-[#fbbf24]/40';
               } else if (wish.colorTheme === 'soft-taupe') {
-                bgClass = 'bg-[#ebe8e2] border border-[#d9c1c2]/50';
-                tapeClass = 'bg-[#877274]/30';
+                bgClass = 'bg-[#fff1f2] border border-[#fecdd3]';
+                tapeClass = 'bg-[#f43f5e]/30';
               }
 
               return (
