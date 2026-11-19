@@ -1,62 +1,148 @@
-import React, { useState } from 'react';
-import { MemoryItem } from '../types';
+import React, { useEffect, useState } from 'react';
+import { MemoryItem, ThemeMode } from '../types';
+import { formatReadableDate } from '../utils/dateTracker';
+import { SafeImage } from './SafeImage';
 
 interface MemoryModalProps {
   memory: MemoryItem | null;
+  memories?: MemoryItem[];
+  theme?: ThemeMode;
+  onSelectMemory?: (memory: MemoryItem) => void;
   onClose: () => void;
   onLike: (id: string) => void;
+  onAddNote?: (memoryId: string, text: string) => Promise<void>;
   onShowerFlowers: () => void;
 }
 
 export const MemoryModal: React.FC<MemoryModalProps> = ({
   memory,
+  memories = [],
+  theme = 'romantic',
+  onSelectMemory,
   onClose,
   onLike,
+  onAddNote,
   onShowerFlowers,
 }) => {
-  const [comments, setComments] = useState<string[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
+  const currentIdx = memory ? memories.findIndex((m) => m.id === memory.id) : -1;
+  const hasPrev = currentIdx > 0;
+  const hasNext = currentIdx >= 0 && currentIdx < memories.length - 1;
+
+  useEffect(() => {
+    if (!memory) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft' && hasPrev && onSelectMemory) {
+        onSelectMemory(memories[currentIdx - 1]);
+      }
+      if (e.key === 'ArrowRight' && hasNext && onSelectMemory) {
+        onSelectMemory(memories[currentIdx + 1]);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [memory, currentIdx, hasPrev, hasNext, memories, onSelectMemory, onClose]);
 
   if (!memory) return null;
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const isAquatic = theme === 'aquatic';
+  const notes = memory.notes || [];
+
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    setComments([...comments, newComment.trim()]);
-    setNewComment('');
-    onShowerFlowers();
+    if (onAddNote) {
+      setSavingNote(true);
+      try {
+        await onAddNote(memory.id, newComment.trim());
+        setNewComment('');
+        onShowerFlowers();
+      } finally {
+        setSavingNote(false);
+      }
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-fade-in">
-      <div className="bg-[#fdf9f3] rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl border border-[#ffd9dc] relative animate-scale-up max-h-[92vh] overflow-y-auto">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 text-[#877274] hover:text-[#5d1826] p-1.5 rounded-full hover:bg-[#ebe8e2] transition-colors cursor-pointer z-10"
-        >
-          <span className="material-symbols-outlined text-[20px]">close</span>
-        </button>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          {/* Left: Image */}
-          <div className="relative w-full aspect-[4/3] md:aspect-square rounded-2xl overflow-hidden bg-[#ebe8e2] shadow-md border border-[#ffd9dc]">
-            <img
-              src={memory.imageUrl}
-              alt={memory.title}
-              className="w-full h-full object-cover"
-            />
-            <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-xs text-[10px] font-bold text-[#5d1826] uppercase font-sans tracking-wider shadow-sm">
-              {memory.tag}
-            </span>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={memory.title}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fade-in"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`rounded-3xl max-w-4xl w-full p-5 sm:p-8 shadow-2xl border relative animate-scale-up max-h-[92vh] overflow-y-auto ${
+          isAquatic
+            ? 'bg-[#f0f8ff] border-[#90e0ef] text-[#03045e]'
+            : 'bg-[#FFF9F2] border-[#FBCFE8] text-[#44313B]'
+        }`}
+      >
+        {/* Top Controls: Prev / Next / Close */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {memories.length > 1 && onSelectMemory && (
+              <>
+                <button
+                  type="button"
+                  disabled={!hasPrev}
+                  onClick={() => hasPrev && onSelectMemory(memories[currentIdx - 1])}
+                  aria-label="Previous photo"
+                  className="w-9 h-9 rounded-full bg-white border border-black/10 flex items-center justify-center disabled:opacity-35 hover:bg-black/5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[19px]">chevron_left</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasNext}
+                  onClick={() => hasNext && onSelectMemory(memories[currentIdx + 1])}
+                  aria-label="Next photo"
+                  className="w-9 h-9 rounded-full bg-white border border-black/10 flex items-center justify-center disabled:opacity-35 hover:bg-black/5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[19px]">chevron_right</span>
+                </button>
+                {currentIdx >= 0 && (
+                  <span className="text-xs font-medium opacity-70 tabular-nums ml-1">
+                    {currentIdx + 1} / {memories.length}
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
-          {/* Right: Story & Details */}
-          <div className="flex flex-col h-full justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close lightbox"
+            className="w-9 h-9 rounded-full bg-white border border-black/10 flex items-center justify-center hover:bg-black/5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[19px]">close</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+          {/* Left: High-Res Image */}
+          <div className="md:col-span-7 relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-white shadow-sm border border-black/5">
+            <SafeImage
+              src={memory.imageUrl}
+              alt={memory.title}
+              theme={theme}
+              loading="eager"
+              placeholderTitle={memory.title}
+              className="w-full h-full object-contain bg-black/5"
+            />
+          </div>
+
+          {/* Right: Story, Metadata & Notes */}
+          <div className="md:col-span-5 flex flex-col justify-between h-full">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-[#735c00] uppercase tracking-wider font-sans">
-                  {memory.date}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-semibold opacity-75">
+                  {memory.category} · {formatReadableDate(memory.date)}
                 </span>
                 <button
                   type="button"
@@ -64,70 +150,78 @@ export const MemoryModal: React.FC<MemoryModalProps> = ({
                     onLike(memory.id);
                     onShowerFlowers();
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffd9dc] text-[#5d1826] text-xs font-semibold hover:bg-[#ffb2ba] transition-colors cursor-pointer"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
+                    isAquatic
+                      ? 'bg-[#caf0f8] text-[#0077B6]'
+                      : 'bg-[#FCE7F3] text-[#BE185D]'
+                  }`}
                 >
-                  <span className="material-symbols-outlined text-[16px]">favorite</span>
-                  <span>{memory.likes} Loves</span>
+                  <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  <span className="tabular-nums">{memory.likes}</span>
                 </button>
               </div>
 
-              <h3 className="font-serif text-2xl font-semibold text-[#5d1826] mb-3">
+              <h2
+                className={`font-serif text-2xl sm:text-3xl font-semibold mb-3 ${
+                  isAquatic ? 'text-[#03045e]' : 'text-[#BE185D]'
+                }`}
+              >
                 {memory.title}
-              </h3>
+              </h2>
 
-              <div className="bg-[#ffffff] p-4 rounded-xl border border-[#ffd9dc]/60 mb-4">
-                <p className="font-serif italic text-[#1c1c18] text-base leading-relaxed">
-                  {memory.caption}
-                </p>
-              </div>
+              <p className="font-serif italic text-base leading-relaxed bg-white p-4 rounded-xl border border-black/5 mb-4">
+                “{memory.caption}”
+              </p>
 
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-7 h-7 rounded-full bg-[#5d1826] text-[#fed65b] flex items-center justify-center text-xs font-bold">
-                  {memory.authorInitial}
-                </div>
-                <span className="text-xs text-[#544244] font-medium">
-                  Preserved in album by {memory.author}
-                </span>
-              </div>
+              <p className="text-xs opacity-75 mb-5">
+                {memory.location} · Uploaded by <strong>{memory.authorName}</strong>
+              </p>
 
-              {/* Memory Comments / Reactions */}
-              <div className="space-y-2 mb-4">
-                <span className="text-[11px] font-bold text-[#544244] uppercase tracking-wider block font-sans">
-                  Keepsake Notes ({comments.length})
-                </span>
-                {comments.length === 0 ? (
-                  <p className="text-xs text-[#877274] italic">
-                    No extra notes yet. Add an inside joke or memory below!
+              {onAddNote && (
+                <div className="space-y-2.5 mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider opacity-70">
+                    Keepsake Notes ({notes.length})
                   </p>
-                ) : (
-                  comments.map((c, i) => (
-                    <div
-                      key={i}
-                      className="text-xs bg-[#ffffff] p-2.5 rounded-lg border border-[#ffd9dc]/50 text-[#1c1c18]"
-                    >
-                      “{c}”
+                  {notes.length === 0 ? (
+                    <p className="text-xs italic opacity-65">
+                      No notes on this photo yet. Leave a sweet reply below.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                      {notes.map((n) => (
+                        <div
+                          key={n.id}
+                          className="text-xs bg-white p-2.5 rounded-xl border border-black/5"
+                        >
+                          <span className="font-semibold">{n.authorName}:</span> “{n.text}”
+                        </div>
+                      ))}
                     </div>
-                  ))
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Add note input */}
-            <form onSubmit={handleAddComment} className="flex gap-2 mt-2">
-              <input
-                type="text"
-                placeholder="Leave an affectionate reaction..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 px-3 py-2 text-xs rounded-lg bg-[#ffffff] border border-[#d9c1c2] text-[#1c1c18] outline-none focus:border-[#5d1826]"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#5d1826] hover:bg-[#7a2e3b] text-white text-xs font-semibold rounded-lg cursor-pointer"
-              >
-                Pin
-              </button>
-            </form>
+            {onAddNote && (
+              <form onSubmit={handleAddComment} className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Write a sweet note..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="flex-1 px-3 py-2 text-xs rounded-xl bg-white border border-[#FBCFE8] outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={savingNote}
+                  className={`px-4 py-2 text-white text-xs font-semibold rounded-xl cursor-pointer ${
+                    isAquatic ? 'bg-[#0077B6]' : 'bg-[#BE185D]'
+                  }`}
+                >
+                  Save
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>

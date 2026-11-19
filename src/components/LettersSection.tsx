@@ -1,24 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { LetterItem, ThemeMode } from '../types';
+import React, { useState } from 'react';
+import { LetterItem, ThemeMode, UserProfile, VisibilityMode } from '../types';
+import { formatReadableDate } from '../utils/dateTracker';
 
 interface LettersSectionProps {
   letters: LetterItem[];
+  currentUser: UserProfile;
   theme?: ThemeMode;
   mainLetterTitle: string;
   mainLetterContent: string;
   onOpenLetter: (letter: LetterItem) => void;
-  onAddLetter: (letter: Omit<LetterItem, 'id'>) => void;
-  onEditLetter: (letter: LetterItem) => void;
-  onDeleteLetter: (id: string) => void;
-  onEditMainLetter: (title: string, content: string) => void;
+  onAddLetter: (letter: {
+    title: string;
+    condition: string;
+    content: string;
+    date: string;
+    unlockDate?: string;
+    status: 'draft' | 'sent';
+    visibility: VisibilityMode;
+  }) => Promise<void>;
+  onEditLetter: (letter: LetterItem) => Promise<void>;
+  onDeleteLetter: (id: string) => Promise<void>;
+  onEditMainLetter: (title: string, content: string) => Promise<void>;
   onOpenCertificate: () => void;
   onShowerFlowers: () => void;
   isMusicPlaying: boolean;
   onToggleMusic: () => void;
+  onNotify: (type: 'success' | 'error' | 'info', text: string) => void;
 }
 
 export const LettersSection: React.FC<LettersSectionProps> = ({
   letters,
+  currentUser,
   theme = 'romantic',
   mainLetterTitle,
   mainLetterContent,
@@ -31,591 +43,593 @@ export const LettersSection: React.FC<LettersSectionProps> = ({
   onShowerFlowers,
   isMusicPlaying,
   onToggleMusic,
+  onNotify,
 }) => {
   const [isLetterUnsealed, setIsLetterUnsealed] = useState(true);
-  const [waveHeights, setWaveHeights] = useState<number[]>([12, 28, 36, 20, 32, 16, 40, 24, 32, 20, 12, 24, 36, 16]);
+  const [filterTab, setFilterTab] = useState<'all' | 'shared' | 'private' | 'drafts'>('all');
 
-  // Modal states for editing
+  // Letter composer modal
+  const [showLetterModal, setShowLetterModal] = useState(false);
   const [editingLetter, setEditingLetter] = useState<LetterItem | null>(null);
-  const [showAddLetterModal, setShowAddLetterModal] = useState(false);
-  const [showEditMainModal, setShowEditMainModal] = useState(false);
-
-  // Form states for Open When letter
-  const [letterCondition, setLetterCondition] = useState('');
   const [letterTitle, setLetterTitle] = useState('');
+  const [letterCondition, setLetterCondition] = useState('');
+  const [letterDate, setLetterDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [unlockDate, setUnlockDate] = useState('');
+  const [visibility, setVisibility] = useState<VisibilityMode>(
+    currentUser.defaultVisibility || 'shared'
+  );
   const [letterContent, setLetterContent] = useState('');
 
-  // Form states for Main letter
+  // Main letter modal
+  const [showEditMainModal, setShowEditMainModal] = useState(false);
   const [editMainTitle, setEditMainTitle] = useState(mainLetterTitle);
   const [editMainContent, setEditMainContent] = useState(mainLetterContent);
 
   const isAquatic = theme === 'aquatic';
+  const headingColor = isAquatic ? 'text-[#03045e]' : 'text-[#BE185D]';
+  const mutedText = isAquatic ? 'text-[#0077B6]' : 'text-[#927C89]';
 
-  // Animate audio waveform bars when music is playing
-  useEffect(() => {
-    if (!isMusicPlaying) return;
-    const interval = window.setInterval(() => {
-      setWaveHeights((prev) =>
-        prev.map(() => Math.floor(Math.random() * 32) + 8)
-      );
-    }, 180);
-    return () => clearInterval(interval);
-  }, [isMusicPlaying]);
+  const visibleLetters = letters.filter((l) => {
+    if (filterTab === 'shared') return l.visibility === 'shared' && l.status === 'sent';
+    if (filterTab === 'private') return l.visibility === 'private';
+    if (filterTab === 'drafts') return l.status === 'draft';
+    return true;
+  });
 
-  const handleToggleSeal = () => {
-    setIsLetterUnsealed(!isLetterUnsealed);
-    onShowerFlowers();
-  };
-
-  const openAddLetter = () => {
-    setLetterCondition('Open When: ');
+  const openNewLetterModal = () => {
+    setEditingLetter(null);
     setLetterTitle('');
+    setLetterCondition('');
+    setLetterDate(new Date().toISOString().slice(0, 10));
+    setUnlockDate('');
+    setVisibility(currentUser.defaultVisibility || 'shared');
     setLetterContent('');
-    setShowAddLetterModal(true);
+    setShowLetterModal(true);
   };
 
-  const openEditLetter = (l: LetterItem, e: React.MouseEvent) => {
+  const openEditModal = (l: LetterItem, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingLetter(l);
-    setLetterCondition(l.condition);
     setLetterTitle(l.title);
+    setLetterCondition(l.condition);
+    setLetterDate(l.date);
+    setUnlockDate(l.unlockDate || '');
+    setVisibility(l.visibility);
     setLetterContent(l.content);
-    setShowAddLetterModal(true);
+    setShowLetterModal(true);
   };
 
-  const handleSaveLetter = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!letterCondition.trim() || !letterContent.trim()) return;
-
-    if (editingLetter) {
-      onEditLetter({
-        ...editingLetter,
-        condition: letterCondition.trim(),
-        title: letterTitle.trim() || letterCondition.trim(),
-        content: letterContent.trim(),
-        preview: letterContent.trim().slice(0, 60) + '...',
-      });
-    } else {
-      onAddLetter({
-        condition: letterCondition.trim(),
-        title: letterTitle.trim() || letterCondition.trim(),
-        content: letterContent.trim(),
-        preview: letterContent.trim().slice(0, 60) + '...',
-      });
+  const saveLetterWithStatus = async (status: 'draft' | 'sent') => {
+    if (!letterTitle.trim() || !letterContent.trim()) {
+      onNotify('error', 'Please add a title and letter message.');
+      return;
     }
 
-    setShowAddLetterModal(false);
-    setEditingLetter(null);
-    onShowerFlowers();
+    try {
+      if (editingLetter) {
+        await onEditLetter({
+          ...editingLetter,
+          title: letterTitle.trim(),
+          condition: letterCondition.trim() || `Open When: ${letterTitle.trim()}`,
+          content: letterContent.trim(),
+          date: letterDate,
+          unlockDate: unlockDate || '',
+          status,
+          visibility,
+        });
+        onNotify('success', status === 'draft' ? 'Draft updated.' : 'Letter updated.');
+      } else {
+        await onAddLetter({
+          title: letterTitle.trim(),
+          condition: letterCondition.trim() || `Open When: ${letterTitle.trim()}`,
+          content: letterContent.trim(),
+          date: letterDate,
+          unlockDate: unlockDate || '',
+          status,
+          visibility,
+        });
+        onNotify(
+          'success',
+          status === 'draft' ? 'Saved to your private drafts.' : 'Letter sealed with love.'
+        );
+        if (status === 'sent') onShowerFlowers();
+      }
+      setShowLetterModal(false);
+      setEditingLetter(null);
+    } catch (err: any) {
+      onNotify('error', err.message || 'Could not save letter.');
+    }
   };
 
-  const handleSaveMainLetter = (e: React.FormEvent) => {
+  const handleSaveMainLetter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editMainTitle.trim() || !editMainContent.trim()) return;
-    onEditMainLetter(editMainTitle.trim(), editMainContent.trim());
-    setShowEditMainModal(false);
-    onShowerFlowers();
+    try {
+      await onEditMainLetter(editMainTitle.trim(), editMainContent.trim());
+      setShowEditMainModal(false);
+      onNotify('success', 'Main keepsake letter updated.');
+    } catch (err: any) {
+      onNotify('error', err.message || 'Could not update letter.');
+    }
   };
 
   return (
-    <section
-      id="heartfelt-letters"
-      className={`w-full py-16 md:py-24 border-y transition-colors duration-500 relative z-10 ${
-        isAquatic ? 'bg-[#caf0f8]/20 border-[#caf0f8]' : 'bg-[#fff5f8]/75 border-[#fbcfe8]/70'
-      }`}
-    >
-      <div className="max-w-[1200px] mx-auto px-4 md:px-8">
-        {/* Section Header */}
-        <div className="flex flex-col items-center text-center mb-12">
-          <span
-            className={`text-[11px] font-bold uppercase tracking-widest font-sans ${
-              isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
-            }`}
-          >
-            {isAquatic ? 'Bottled Messages & Ocean Notes' : 'Words For The Heart'}
-          </span>
-          <h2
-            className={`font-serif text-[32px] md:text-[38px] mt-1 font-normal ${
-              isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
-            }`}
-          >
-            {isAquatic ? 'Bottled Letters & Envelopes' : 'Keepsake Letters & Envelopes'}
-          </h2>
-          <p className="text-sm md:text-base text-[#831843] max-w-lg mt-2 leading-relaxed">
-            Treasured notes sealed with tenderness, meant to be uncurled whenever you need a reminder of who you are to us.
+    <section className="max-w-[1200px] mx-auto px-4 md:px-8 py-10 md:py-14 w-full relative z-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div>
+          <p className={`text-xs font-semibold uppercase tracking-wider ${mutedText}`}>
+            Private &amp; Shared Envelopes
+          </p>
+          <h1 className={`font-serif text-4xl md:text-5xl mt-1 ${headingColor}`}>
+            {isAquatic ? 'Bottled Letters & Notes' : 'Letters For Each Other'}
+          </h1>
+          <p className={`text-sm md:text-base mt-2 max-w-xl ${mutedText}`}>
+            Write heartfelt letters, keep private drafts, or schedule a special opening date for your partner.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Folded Stationery & Open When Envelopes */}
-          <div className="lg:col-span-7 bg-[#ffffff] rounded-3xl p-6 md:p-8 shadow-md border border-[#fbcfe8]">
-            <div className="flex items-center justify-between pb-6 border-b border-pink-100">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`material-symbols-outlined text-[28px] ${
-                    isAquatic ? 'text-[#0077b6]' : 'text-[#ec4899]'
-                  }`}
-                >
-                  markunread_mailbox
-                </span>
-                <div>
-                  <span
-                    className={`text-[11px] font-bold uppercase font-sans ${
-                      isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
-                    }`}
-                  >
-                    Folded Stationery
-                  </span>
-                  <h3
-                    className={`font-serif text-[20px] md:text-[22px] font-semibold ${
-                      isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
-                    }`}
-                  >
-                    {mainLetterTitle}
-                  </h3>
-                </div>
-              </div>
+        <button
+          type="button"
+          onClick={openNewLetterModal}
+          className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white shadow-sm cursor-pointer min-h-[44px] shrink-0 ${
+            isAquatic
+              ? 'bg-[#0077B6]'
+              : 'bg-gradient-to-r from-[#EC4899] to-[#BE185D]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[19px]">edit_square</span>
+          <span>Write a Letter</span>
+        </button>
+      </div>
 
-              {/* Action Buttons: Edit Main & Toggle Fold */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditMainTitle(mainLetterTitle);
-                    setEditMainContent(mainLetterContent);
-                    setShowEditMainModal(true);
-                  }}
-                  title="Edit this letter's message"
-                  className="p-1.5 rounded-full text-[#831843] hover:text-[#db2777] hover:bg-[#fff0f5] transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">edit</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleToggleSeal}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full transition-all cursor-pointer border text-xs font-semibold shadow-2xs active:scale-95 ${
-                    isAquatic
-                      ? 'bg-[#caf0f8] text-[#03045e] hover:bg-[#90e0ef] border-[#90e0ef]'
-                      : 'bg-[#fff0f5] text-[#db2777] hover:bg-[#fce7f3] border-[#fbcfe8]'
-                  }`}
-                >
-                  <span>{isLetterUnsealed ? 'Fold Letter' : 'Break Wax Seal'}</span>
-                  <span className="material-symbols-outlined text-[17px]">
-                    {isLetterUnsealed ? 'lock' : 'lock_open'}
-                  </span>
-                </button>
-              </div>
-            </div>
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {(
+          [
+            ['all', `All (${letters.length})`],
+            ['shared', 'Shared Letters'],
+            ['private', 'My Private Letters'],
+            ['drafts', 'My Drafts'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setFilterTab(id)}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              filterTab === id
+                ? isAquatic
+                  ? 'bg-[#0077B6] text-white'
+                  : 'bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-white'
+                : 'bg-white/90 border border-[#FBCFE8] text-[#44313B] hover:bg-white'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-            {/* Unfolded Letter Sheet */}
-            <div
-              className={`transition-all duration-700 overflow-hidden relative ${
-                isLetterUnsealed
-                  ? 'max-h-[850px] opacity-100 mt-6 bg-[#f7f3ed]/50 rounded-2xl p-6 md:p-8 border border-[#ffd9dc]/60'
-                  : 'max-h-0 opacity-0 mt-0 py-0 border-0'
-              }`}
-            >
-              {/* Vintage Paper Watermark Motif */}
-              <div className="absolute right-4 bottom-4 opacity-5 pointer-events-none select-none">
-                <span className="material-symbols-outlined text-[140px] text-[#5d1826]">
-                  {isAquatic ? 'waves' : 'local_florist'}
-                </span>
-              </div>
+      {/* Envelope Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {visibleLetters.length === 0 ? (
+          <div className="md:col-span-2 lg:col-span-3 bg-white/90 rounded-3xl p-10 text-center border border-dashed border-[#FBCFE8]">
+            <p className="font-serif text-2xl">No letters in this view yet.</p>
+            <p className={`text-sm mt-1 ${mutedText}`}>
+              Click “Write a Letter” to seal a private or shared envelope.
+            </p>
+          </div>
+        ) : (
+          visibleLetters.map((letter) => {
+            const isOwner = letter.authorId === currentUser.id;
+            const isLocked = Boolean(letter.isLocked);
 
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-bold text-[#877274] uppercase tracking-widest font-sans">
-                  TO MY IRREPLACEABLE BEST FRIEND —
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditMainTitle(mainLetterTitle);
-                    setEditMainContent(mainLetterContent);
-                    setShowEditMainModal(true);
-                  }}
-                  className="text-xs text-[#735c00] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[14px]">edit</span>
-                  <span>Edit Letter</span>
-                </button>
-              </div>
-
-              <div className="space-y-4 font-serif text-[16px] md:text-[18px] text-[#1c1c18] leading-relaxed whitespace-pre-line">
-                {mainLetterContent}
-              </div>
-
-              <div className="flex items-center justify-between pt-4 mt-6 border-t border-[#d9c1c2]/40">
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-full bg-[#5d1826] text-[#fed65b] flex items-center justify-center text-xs font-bold shadow-2xs">
-                    ★
-                  </span>
-                  <span className="font-serif text-lg font-semibold text-[#5d1826]">
-                    Forever in your corner, always.
-                  </span>
-                </div>
-                <span className="text-[11px] font-bold text-[#877274] tracking-wider uppercase font-sans">
-                  Sanctuary Archive • Forever
-                </span>
-              </div>
-            </div>
-
-            {/* Folded wax seal placeholder when folded */}
-            {!isLetterUnsealed && (
+            return (
               <div
-                onClick={handleToggleSeal}
-                className="mt-6 py-10 bg-[#f7f3ed]/60 rounded-2xl border border-dashed border-[#d9c1c2] flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#ebe8e2] transition-colors"
+                key={letter.id}
+                onClick={() => {
+                  if (isLocked) {
+                    onNotify(
+                      'info',
+                      `This letter unlocks on ${formatReadableDate(letter.unlockDate || '')}.`
+                    );
+                    return;
+                  }
+                  onOpenLetter(letter);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!isLocked) onOpenLetter(letter);
+                  }
+                }}
+                className={`group relative rounded-2xl p-6 border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-1 flex flex-col justify-between overflow-hidden ${
+                  isAquatic
+                    ? 'bg-white/95 border-[#caf0f8] text-[#03045e]'
+                    : 'bg-[#FFF9F2] border-[#FBCFE8] text-[#44313B]'
+                }`}
               >
-                <div className="w-14 h-14 rounded-full bg-[#7a2e3b] text-[#fed65b] flex items-center justify-center shadow-md mb-2">
-                  <span className="material-symbols-outlined text-[28px]">mark_email_unread</span>
-                </div>
-                <p className="font-serif text-lg font-medium text-[#5d1826]">The letter is folded & wax-sealed</p>
-                <p className="text-xs text-[#544244] mt-0.5">Click here or the button above to break the seal and read.</p>
-              </div>
-            )}
-
-            {/* Secondary Sealed Mini Tabs ("Open When") */}
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center justify-between">
-                <span
-                  className={`text-[11px] font-bold uppercase tracking-wider font-sans ${
-                    isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
-                  }`}
-                >
-                  Sealed Vault: "Open When..." Letters ({letters.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={openAddLetter}
-                  className={`text-xs font-semibold px-3 py-1 rounded-full border transition-all flex items-center gap-1 cursor-pointer ${
+                {/* Envelope Flap Hairline SVG Motif */}
+                <div
+                  className={`h-1.5 -mx-6 -mt-6 mb-5 ${
                     isAquatic
-                      ? 'bg-white text-[#0077b6] border-[#90e0ef] hover:bg-[#e0fbfc]'
-                      : 'bg-white text-[#5d1826] border-[#ffd9dc] hover:bg-[#ffd9dc]'
+                      ? 'bg-gradient-to-r from-[#0077B6] to-[#48cae4]'
+                      : 'bg-gradient-to-r from-[#EC4899] via-[#f472b6] to-[#EDE9FE]'
                   }`}
-                >
-                  <span className="material-symbols-outlined text-[15px]">add</span>
-                  <span>Add New Sealed Letter</span>
-                </button>
-              </div>
+                />
 
-              {letters.length === 0 ? (
-                <div className="p-6 text-center text-sm text-[#877274] bg-[#f7f3ed] rounded-xl border border-dashed border-[#d9c1c2]">
-                  No sealed letters left. Click "Add New Sealed Letter" to craft one!
-                </div>
-              ) : (
-                letters.map((letter) => (
-                  <div
-                    key={letter.id}
-                    onClick={() => onOpenLetter(letter)}
-                    className="p-4 rounded-xl bg-[#f7f3ed] hover:bg-[#ebe8e2] border border-[#ffd9dc]/70 flex items-center justify-between transition-all cursor-pointer group hover:-translate-y-0.5 shadow-2xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[#735c00] text-[22px] group-hover:scale-110 transition-transform">
-                        drafts
-                      </span>
-                      <span className="text-sm md:text-base text-[#1c1c18] font-medium group-hover:text-[#5d1826] transition-colors">
-                        {letter.condition}
-                      </span>
-                    </div>
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className={`text-xs font-medium ${mutedText}`}>
+                      {formatReadableDate(letter.date)} ·{' '}
+                      {letter.visibility === 'private' ? 'Private' : 'Shared'}
+                      {letter.status === 'draft' ? ' · Draft' : ''}
+                    </span>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => openEditLetter(letter, e)}
-                        title="Edit Letter"
-                        className="p-1 text-[#877274] hover:text-[#5d1826] cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteLetter(letter.id);
-                        }}
-                        title="Delete Letter"
-                        className="p-1 text-[#877274] hover:text-red-600 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
-                      </button>
-                      <span className="text-[11px] font-bold text-[#877274] group-hover:text-[#5d1826] uppercase font-sans tracking-wider whitespace-nowrap ml-1">
-                        Sealed • Click
-                      </span>
-                    </div>
+                    {isOwner && (
+                      <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={(e) => openEditModal(letter, e)}
+                          aria-label={`Edit ${letter.title}`}
+                          className="p-1 rounded-lg hover:bg-black/5 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteLetter(letter.id);
+                          }}
+                          aria-label={`Delete ${letter.title}`}
+                          className="p-1 rounded-lg hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ))
-              )}
+
+                  <h3 className={`font-serif text-2xl font-semibold mb-1.5 ${headingColor}`}>
+                    {letter.title}
+                  </h3>
+                  <p className={`text-xs font-semibold mb-3 ${mutedText}`}>{letter.condition}</p>
+
+                  <p className="font-serif italic text-[15px] opacity-85 line-clamp-3 leading-relaxed">
+                    {isLocked
+                      ? `Scheduled to open on ${formatReadableDate(letter.unlockDate || '')}.`
+                      : letter.preview}
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-black/5 flex items-center justify-between text-xs">
+                  <span className={mutedText}>From {letter.authorName}</span>
+                  <span
+                    className={`inline-flex items-center gap-1 font-semibold ${headingColor}`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {isLocked ? 'lock_clock' : 'drafts'}
+                    </span>
+                    <span>{isLocked ? 'Time-Locked' : 'Unseal Letter'}</span>
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Preserved Folded Stationery + Sound Box + Forever Pact */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div
+          className={`lg:col-span-7 bg-white/95 rounded-3xl p-6 md:p-8 shadow-sm border ${
+            isAquatic ? 'border-[#caf0f8] text-[#03045e]' : 'border-[#FBCFE8] text-[#44313B]'
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-black/5">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-wider ${mutedText}`}>
+                Featured Keepsake Stationery
+              </p>
+              <h2 className={`font-serif text-2xl font-semibold mt-0.5 ${headingColor}`}>
+                {mainLetterTitle}
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditMainTitle(mainLetterTitle);
+                  setEditMainContent(mainLetterContent);
+                  setShowEditMainModal(true);
+                }}
+                aria-label="Edit featured letter"
+                className="p-2 rounded-xl hover:bg-black/5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLetterUnsealed((v) => !v);
+                  onShowerFlowers();
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-colors ${
+                  isAquatic
+                    ? 'bg-[#e0fbfc] text-[#03045e] border-[#90e0ef]'
+                    : 'bg-[#FFF0F5] text-[#BE185D] border-[#FBCFE8]'
+                }`}
+              >
+                {isLetterUnsealed ? 'Fold Letter' : 'Break Seal'}
+              </button>
             </div>
           </div>
 
-          {/* Right Column: Audio Memory Box & Friendship Pact */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Audio Memory Box */}
-            <div className="bg-[#ffffff] rounded-3xl p-6 md:p-8 shadow-md border border-[#ffd9dc]/50">
-              <span
-                className={`text-[11px] font-bold uppercase tracking-wider font-sans ${
-                  isAquatic ? 'text-[#0077b6]' : 'text-[#735c00]'
-                }`}
-              >
-                Audio Keepsake
-              </span>
-              <h3
-                className={`font-serif text-[20px] md:text-[22px] font-semibold mt-1 mb-2 ${
-                  isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
-                }`}
-              >
-                Our Road Trip Voice Tape
-              </h3>
-              <p className="text-xs md:text-sm text-[#544244] mb-6 leading-relaxed">
-                A snippet of spontaneous car singing, bad acoustic guitar, and pure joyous laughter from Highway 1.
-              </p>
-
-              {/* Audio Player Glass Component */}
-              <div className="p-4 rounded-2xl bg-[#f7f3ed] border border-[#ffd9dc] flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={onToggleMusic}
-                      className={`w-12 h-12 rounded-full text-[#fed65b] flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border ${
-                        isAquatic
-                          ? 'bg-[#0077b6] border-[#90e0ef]'
-                          : 'bg-[#5d1826] border-[#fed65b]/40'
-                      }`}
-                      type="button"
-                      title={isMusicPlaying ? 'Pause melody' : 'Play melody'}
-                    >
-                      <span className="material-symbols-outlined text-[24px]">
-                        {isMusicPlaying ? 'pause' : 'play_arrow'}
-                      </span>
-                    </button>
-                    <div>
-                      <p
-                        className={`font-serif text-base font-semibold ${
-                          isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
-                        }`}
-                      >
-                        Soundtrack to 2 AM
-                      </p>
-                      <p className="text-xs text-[#544244]">
-                        {isMusicPlaying ? 'Now Playing • Soft Ambient Lullaby' : 'Singing off-key • 02:44'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-[#735c00] bg-[#fed65b]/30 px-2 py-0.5 rounded-full border border-[#fed65b]/60">
-                    HQ Audio
-                  </span>
-                </div>
-
-                {/* Visual Audio Waveform */}
-                <div className="flex items-end gap-1.5 h-11 px-2 pt-2 justify-between">
-                  {waveHeights.map((h, i) => (
-                    <span
-                      key={i}
-                      style={{ height: `${isMusicPlaying ? h : Math.max(8, (i % 5) * 5 + 8)}px` }}
-                      className={`w-1.5 rounded-full transition-all duration-150 ${
-                        isAquatic
-                          ? i % 2 === 0
-                            ? 'bg-[#0077b6]'
-                            : 'bg-[#48cae4]'
-                          : i % 3 === 0
-                          ? 'bg-[#735c00]'
-                          : i % 2 === 0
-                          ? 'bg-[#5d1826]'
-                          : 'bg-[#5d1826]/60'
-                      }`}
-                    />
-                  ))}
-                </div>
+          {isLetterUnsealed ? (
+            <div className="mt-6 bg-[#FFF9F2] rounded-2xl p-6 border border-black/5 animate-envelope-open">
+              <div className="font-serif text-[17px] leading-relaxed whitespace-pre-line">
+                {mainLetterContent}
               </div>
             </div>
-
-            {/* Friendship Certificate / Blessing Token */}
+          ) : (
             <div
-              onClick={onOpenCertificate}
-              className="bg-gradient-to-br from-[#f1ede7] to-[#ebe8e2] p-6 rounded-3xl shadow-sm text-center flex flex-col items-center border border-[#ffd9dc]/60 hover:shadow-md transition-all cursor-pointer group"
+              onClick={() => {
+                setIsLetterUnsealed(true);
+                onShowerFlowers();
+              }}
+              className="mt-6 py-10 bg-[#FFF9F2] rounded-2xl border border-dashed border-[#FBCFE8] flex flex-col items-center justify-center text-center cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[38px] text-[#735c00] mb-2 group-hover:scale-110 transition-transform">
-                workspace_premium
+              <span className={`material-symbols-outlined text-[32px] mb-2 ${headingColor}`}>
+                mark_email_unread
               </span>
-              <h4
-                className={`font-serif text-[20px] font-semibold ${
-                  isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
-                }`}
-              >
-                Unconditional Friendship Pact
-              </h4>
-              <p className="text-xs text-[#544244] mt-1.5 mb-4 max-w-xs leading-relaxed">
-                Valid in all time zones, through bad haircut crises, spontaneous mid-week brunch demands, and forever onwards.
-              </p>
-              <div
-                className={`px-4 py-1.5 rounded-full text-[11px] font-bold shadow-2xs border uppercase font-sans tracking-wider transition-colors ${
-                  isAquatic
-                    ? 'bg-white text-[#0077b6] border-[#90e0ef] group-hover:bg-[#0077b6] group-hover:text-white'
-                    : 'bg-white text-[#5d1826] border-[#ffd9dc] group-hover:bg-[#5d1826] group-hover:text-white'
-                }`}
-              >
-                SIGNED • NO EXPIRATION DATE
-              </div>
-              <span className="text-[10px] text-[#735c00] mt-2 underline font-semibold">
-                Click to inspect & print pact
-              </span>
+              <p className="font-serif text-lg font-medium">Wax-sealed &amp; folded</p>
+              <p className={`text-xs mt-1 ${mutedText}`}>Click to break the seal and read.</p>
             </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div
+            className={`bg-white/95 rounded-3xl p-6 shadow-sm border ${
+              isAquatic ? 'border-[#caf0f8] text-[#03045e]' : 'border-[#FBCFE8] text-[#44313B]'
+            }`}
+          >
+            <p className={`text-xs font-semibold uppercase tracking-wider ${mutedText}`}>
+              Ambient Soundtrack
+            </p>
+            <h3 className={`font-serif text-2xl font-semibold mt-1 mb-2 ${headingColor}`}>
+              Late-Night Melody Box
+            </h3>
+            <p className={`text-xs leading-relaxed mb-5 ${mutedText}`}>
+              Gentle instrumental chimes tailored to your active theme (muted by default).
+            </p>
+            <button
+              type="button"
+              onClick={onToggleMusic}
+              className={`w-full py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 cursor-pointer ${
+                isAquatic
+                  ? 'bg-[#0077B6]'
+                  : 'bg-gradient-to-r from-[#EC4899] to-[#BE185D]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isMusicPlaying ? 'pause' : 'play_arrow'}
+              </span>
+              <span>{isMusicPlaying ? 'Pause Ambient Melody' : 'Play Ambient Melody'}</span>
+            </button>
+          </div>
+
+          <div
+            onClick={onOpenCertificate}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpenCertificate();
+              }
+            }}
+            className={`rounded-3xl p-6 border shadow-sm text-center cursor-pointer transition-transform hover:-translate-y-0.5 ${
+              isAquatic
+                ? 'bg-[#e0fbfc]/80 border-[#90e0ef] text-[#03045e]'
+                : 'bg-[#FFF9F2] border-[#FBCFE8] text-[#44313B]'
+            }`}
+          >
+            <span className={`material-symbols-outlined text-[34px] mb-2 ${headingColor}`}>
+              workspace_premium
+            </span>
+            <h3 className={`font-serif text-xl font-semibold ${headingColor}`}>
+              Srishti &amp; Manav Forever Pact
+            </h3>
+            <p className={`text-xs mt-1 mb-4 ${mutedText}`}>
+              Inspect and print our keepsake covenant certificate.
+            </p>
+            <span className={`text-xs font-semibold underline ${headingColor}`}>
+              Open Certificate
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Add / Edit Open When Letter Modal */}
-      {showAddLetterModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="bg-[#fdf9f3] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#ffd9dc] relative animate-scale-up max-h-[90vh] overflow-y-auto">
+      {/* Write / Edit Letter Modal */}
+      {showLetterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-xs animate-fade-in">
+          <div className="bg-[#FFF9F2] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-[#FBCFE8] relative animate-scale-up max-h-[92vh] overflow-y-auto text-[#44313B]">
             <button
+              type="button"
               onClick={() => {
-                setShowAddLetterModal(false);
+                setShowLetterModal(false);
                 setEditingLetter(null);
               }}
-              className="absolute top-5 right-5 text-[#877274] hover:text-[#5d1826] p-1 rounded-full cursor-pointer"
+              aria-label="Close letter editor"
+              className="absolute top-5 right-5 text-[#927C89] hover:text-[#44313B] p-1 rounded-full cursor-pointer"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
 
-            <span className="text-[11px] font-bold text-[#735c00] uppercase tracking-wider font-sans">
-              {editingLetter ? 'Edit Sealed Letter' : 'New Sealed Letter'}
-            </span>
-            <h3
-              className={`font-serif text-2xl font-semibold mb-4 ${
-                isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
-              }`}
-            >
-              {editingLetter ? 'Update Letter' : 'Craft an "Open When" Letter'}
-            </h3>
+            <h2 className={`font-serif text-2xl font-semibold mb-4 ${headingColor}`}>
+              {editingLetter ? 'Edit Letter' : 'Compose a Letter'}
+            </h2>
 
-            <form onSubmit={handleSaveLetter} className="space-y-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
-                  Envelope Prompt ("Open When...")
-                </label>
+                <label className="block text-xs font-semibold mb-1">Title *</label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Open When: You have big scary dreams ahead"
-                  value={letterCondition}
-                  onChange={(e) => setLetterCondition(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] outline-none text-[#1c1c18]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
-                  Letter Title / Subject
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. A letter for when courage feels distant"
                   value={letterTitle}
                   onChange={(e) => setLetterTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                  placeholder="e.g. For Our Second Anniversary"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
-                  Letter Content
-                </label>
-                <textarea
-                  required
-                  rows={6}
-                  placeholder="Write from the heart. What does she need to hear in this moment?"
-                  value={letterContent}
-                  onChange={(e) => setLetterContent(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] outline-none text-[#1c1c18] font-serif leading-relaxed"
+                <label className="block text-xs font-semibold mb-1">Envelope Prompt</label>
+                <input
+                  type="text"
+                  value={letterCondition}
+                  onChange={(e) => setLetterCondition(e.target.value)}
+                  placeholder="e.g. Open When: You need a warm hug"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2 border-t border-[#d9c1c2]/50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Letter Date</label>
+                  <input
+                    type="date"
+                    value={letterDate}
+                    onChange={(e) => setLetterDate(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">
+                    Scheduled Opening Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={unlockDate}
+                    onChange={(e) => setUnlockDate(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Visibility</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisibility('shared')}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border cursor-pointer ${
+                      visibility === 'shared'
+                        ? 'bg-[#FCE7F3] border-[#EC4899] text-[#BE185D]'
+                        : 'bg-white border-[#FBCFE8] text-[#927C89]'
+                    }`}
+                  >
+                    Shared With Partner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibility('private')}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border cursor-pointer ${
+                      visibility === 'private'
+                        ? 'bg-[#EDE9FE] border-[#BE185D] text-[#44313B]'
+                        : 'bg-white border-[#FBCFE8] text-[#927C89]'
+                    }`}
+                  >
+                    Private (Only Me)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Letter Message *</label>
+                <textarea
+                  rows={6}
+                  value={letterContent}
+                  onChange={(e) => setLetterContent(e.target.value)}
+                  placeholder="Write from your heart..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm font-serif leading-relaxed"
+                />
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowAddLetterModal(false);
-                    setEditingLetter(null);
-                  }}
-                  className="px-4 py-2 rounded-lg text-sm text-[#544244] hover:bg-[#ebe8e2] cursor-pointer"
+                  onClick={() => saveLetterWithStatus('draft')}
+                  className="px-4 py-2 rounded-xl border border-[#FBCFE8] bg-white text-xs font-semibold hover:bg-[#FFF0F5] cursor-pointer"
                 >
-                  Cancel
+                  Save Draft
                 </button>
                 <button
-                  type="submit"
-                  className={`px-5 py-2 rounded-lg text-white text-sm font-semibold shadow-sm transition-colors cursor-pointer ${
-                    isAquatic ? 'bg-[#0077b6] hover:bg-[#023e8a]' : 'bg-[#5d1826] hover:bg-[#7a2e3b]'
+                  type="button"
+                  onClick={() => saveLetterWithStatus('sent')}
+                  className={`px-5 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer ${
+                    isAquatic ? 'bg-[#0077B6]' : 'bg-[#BE185D]'
                   }`}
                 >
-                  {editingLetter ? 'Save Changes' : 'Seal With Wax ✉'}
+                  Seal &amp; Send
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Edit Main Folded Letter Modal */}
+      {/* Edit Main Stationery Letter Modal */}
       {showEditMainModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="bg-[#fdf9f3] rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-[#ffd9dc] relative animate-scale-up max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-xs animate-fade-in">
+          <div className="bg-[#FFF9F2] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-[#FBCFE8] relative animate-scale-up text-[#44313B]">
             <button
+              type="button"
               onClick={() => setShowEditMainModal(false)}
-              className="absolute top-5 right-5 text-[#877274] hover:text-[#5d1826] p-1 rounded-full cursor-pointer"
+              aria-label="Close main letter editor"
+              className="absolute top-5 right-5 text-[#927C89] p-1 rounded-full cursor-pointer"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
-
-            <span className="text-[11px] font-bold text-[#735c00] uppercase tracking-wider font-sans">
-              Main Stationery
-            </span>
-            <h3
-              className={`font-serif text-2xl font-semibold mb-4 ${
-                isAquatic ? 'text-[#03045e]' : 'text-[#5d1826]'
-              }`}
-            >
-              Edit Main Folded Letter
-            </h3>
-
+            <h2 className={`font-serif text-2xl font-semibold mb-4 ${headingColor}`}>
+              Edit Featured Letter
+            </h2>
             <form onSubmit={handleSaveMainLetter} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
-                  Letter Title
-                </label>
+                <label className="block text-xs font-semibold mb-1">Title</label>
                 <input
                   type="text"
                   required
                   value={editMainTitle}
                   onChange={(e) => setEditMainTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] outline-none text-[#1c1c18]"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm"
                 />
               </div>
-
               <div>
-                <label className="block text-[11px] font-bold text-[#544244] uppercase mb-1">
-                  Letter Body
-                </label>
+                <label className="block text-xs font-semibold mb-1">Message</label>
                 <textarea
-                  required
                   rows={8}
+                  required
                   value={editMainContent}
                   onChange={(e) => setEditMainContent(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white border border-[#d9c1c2] outline-none text-[#1c1c18] font-serif leading-relaxed"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm font-serif"
                 />
               </div>
-
-              <div className="flex justify-end gap-3 pt-2 border-t border-[#d9c1c2]/50">
+              <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowEditMainModal(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-[#544244] hover:bg-[#ebe8e2] cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs text-[#927C89] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-5 py-2 rounded-lg text-white text-sm font-semibold shadow-sm transition-colors cursor-pointer ${
-                    isAquatic ? 'bg-[#0077b6] hover:bg-[#023e8a]' : 'bg-[#5d1826] hover:bg-[#7a2e3b]'
+                  className={`px-5 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer ${
+                    isAquatic ? 'bg-[#0077B6]' : 'bg-[#BE185D]'
                   }`}
                 >
                   Save Letter

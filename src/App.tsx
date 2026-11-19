@@ -1,26 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { PetalCanvas, PetalCanvasHandle } from './components/PetalCanvas';
 import { AquaticBackground } from './components/AquaticBackground';
 import { RomanticBackground } from './components/RomanticBackground';
 import { Header } from './components/Header';
-import { HeroSection } from './components/HeroSection';
+import { AuthGate } from './components/AuthGate';
+import { HomeDashboard } from './components/HomeDashboard';
+import { MemoriesSection } from './components/MemoriesSection';
 import { TimelineSection } from './components/TimelineSection';
-import { GallerySection } from './components/GallerySection';
 import { LettersSection } from './components/LettersSection';
-import { PinboardSection } from './components/PinboardSection';
-import { CelebrationBanner } from './components/CelebrationBanner';
+import { JournalSection } from './components/JournalSection';
+import { BucketListSection } from './components/BucketListSection';
+import { CalendarSection } from './components/CalendarSection';
+import { SettingsSection } from './components/SettingsSection';
 import { Footer } from './components/Footer';
 import { OpenWhenModal } from './components/OpenWhenModal';
 import { CertificateModal } from './components/CertificateModal';
 import { MemoryModal } from './components/MemoryModal';
+import { ToastContainer, ToastMessage } from './components/Toast';
 import {
-  Milestone,
-  MemoryItem,
-  LetterItem,
-  StickyWish,
+  AppPage,
+  BucketCategory,
+  BucketItem,
+  JournalEntry,
+  JournalMood,
   KeepsakeSettings,
+  LetterItem,
+  LittleThingCategory,
+  LittleThingItem,
+  MemoryCategory,
+  MemoryItem,
+  Milestone,
+  SanctuaryState,
+  SpecialDateEvent,
+  SpecialEventType,
   ThemeMode,
+  UserProfile,
+  VisibilityMode,
 } from './types';
+import { apiFetch, getAuthToken, setAuthToken } from './utils/api';
 import {
   toggleAmbientMusic,
   startAmbientMusic,
@@ -29,337 +46,202 @@ import {
   playBubbleSplashChime,
 } from './utils/sound';
 
-const DEFAULT_SETTINGS: KeepsakeSettings = {
+const DEFAULT_PUBLIC_HERO: Partial<KeepsakeSettings> = {
   recipientName: 'Srishti and Manav',
-  subtitle: 'Shishi- My kuch puchuu',
-  startDate: '2025-12-01', // 1st December 2025
-  petalsGiven: 1420,
-  mainQuote:
-    'From a long-distance spark to right here in my arms',
-  heroImageUrl:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBrl9gYx78SUS7omxQOos2juTyjesBhhbF8zZNesct8MqT9_b0ELvIatWQVfNC9GdLtg0p4ohQcUQKvNULaU6qONuUFWdPESiK9OXzU6Ms9254Z1DFhpttFdeRzFV5tz4Gpt63DAKVCKvDl8xBM7NXbko9SxQhXlWtnZvTH1-Io6Y6nDgpVoSoSLZhARPoxs1dVAp7QYgfR_5fYankrtto_hXfBlrV6fdsIM_O3FtUe1Ut756a83lzz',
-  heroPhotoLabel: 'Srishti & Manav',
-  heroPhotoSub: 'Forever & Always',
-  mainLetterTitle: 'A Letter For When You Need a Smile',
-  mainLetterContent: `If you are reading this on an ordinary Tuesday or on an evening when the world feels slightly too heavy, I want you to take a slow breath and remember something simple:\n\n“You have this quiet, effortless magic of making spaces feel softer and people feel understood. You never ask for the spotlight, yet everyone in your presence blooms a little wider.”\n\nThank you for laughing at my worst puns, for holding my silence when words were too messy, and for celebrating every little victory like it was the world cup. Meeting you wasn’t luck—it was grace. Here’s to every horizon we haven't crossed yet.`,
+  subtitle: 'Shishi- My kuchu puchuu',
+  startDate: '2025-12-01',
+  mainQuote: 'From a long-distance spark to right here in my arms',
+  heroImageUrl: '/api/seed-asset/hero',
 };
-
-const DEFAULT_MILESTONES: Milestone[] = [
-  {
-    id: 'm-1',
-    chapter: 'Chapter I',
-    date: 'October 2019',
-    title: 'The Coffee Spill Encounter',
-    description:
-      'Both reaching for the last cinnamon brioche in the library café. One spilled latte led to two hours of uninterrupted giggles.',
-    location: 'Campus Corner Bookshop',
-    icon: 'local_cafe',
-  },
-  {
-    id: 'm-2',
-    chapter: 'Chapter II',
-    date: 'July 2021',
-    title: 'The Coastal Flat-Tire Fiasco',
-    description:
-      'Stranded at dusk on the scenic bluff with no cell service. We ate warm cherries, danced on the hood, and watched the milky way emerge.',
-    location: 'Highway 101 Overlook',
-    icon: 'directions_car',
-  },
-  {
-    id: 'm-3',
-    chapter: 'Chapter III',
-    date: 'May 2023',
-    title: 'The Graduation Hug That Melted Time',
-    description:
-      'Through study marathons and career doubts, stepping into adulthood hand in hand. The tears were real, but the pride was boundless.',
-    location: 'Sunlit Grand Amphitheater',
-    icon: 'school',
-  },
-  {
-    id: 'm-4',
-    chapter: 'Chapter IV',
-    date: 'Present Day',
-    title: 'Surprise Sanctuary Celebration',
-    description:
-      'Gathering every heart you have touched across the years into one single love-letter keepsake that will stay forever alive.',
-    location: 'The Rooftop Greenhouse',
-    icon: 'cake',
-  },
-];
-
-const DEFAULT_MEMORIES: MemoryItem[] = [
-  {
-    id: 'mem-1',
-    title: 'Golden Hour Botanical Magic',
-    date: 'April 14 • Kyoto trip',
-    category: 'trips',
-    tag: 'Garden Blooms',
-    caption:
-      '“Our happiest afternoon — running between greenhouses until the staff gently told us they were locking up.”',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDDgqvZ0qgApbOQ09Rc2Qvm8h0Gyj_FD4ENJzbTxvkFeUqBAIt3xkSRKmIyovxyc1Q6SSrQz6_2gdob6n7cx9Zy2omtFwsl3WUFIhz1npP6HyEyoo_44s5_dM3dKgCVVgmuDtEvGGYK2UWSXY_9OOFAhhxMb03SD5KX3f5ZkxQokt_lopxiOocq-dQ23loTn3ScnDHKQA5jRGXU7lmTvXZuaJnGf2WaQhg3xIxq9vX3k2TOFcJ8Wqkx',
-    likes: 148,
-    author: 'Maya',
-    authorInitial: 'M',
-  },
-  {
-    id: 'mem-2',
-    title: 'Spilling More Tea Than Drinking',
-    date: 'September 29 • Weekend ritual',
-    category: 'silly',
-    tag: 'Matcha Afternoons',
-    caption: '“When a thirty-minute catch-up inevitably turns into a 4-hour heart-to-heart.”',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCFPGoY7l-G7hcHiyh34SEdHdZ7CRf0nK-F98_TBlGjP-NvC8vXfeQzvARVPYpwKEISY2EAEtxNZmn2wrjenBW2T0EdLISc9AXiIfU8vcisCkKcK_W-FS8AZjPmZdLEmp6FHQRVJZABiwH3J1XqhjFuYGkjCSD0_VSMVNdQNLPS1s3VhVq0s_ezix7QwU5xamkMl-AQEaKh2z591qzOw9LIJ97DSvxKXxvTAzIiYzoCV7ckP7XvHJZL',
-    likes: 94,
-    author: 'Sam',
-    authorInitial: 'S',
-  },
-  {
-    id: 'mem-3',
-    title: 'Silence That Needs No Words',
-    date: 'August 03 • Big Sur',
-    category: 'trips',
-    tag: 'Coastal Dusk',
-    caption: '“Sitting wrapped in that oversized blanket watching the Pacific swallow the sun.”',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCk7qdtIpZMs-s3vG8k5c0zf_pIamN5h50q4-1uSMkCTgcDnxk5dojkIB0InN5d7c6GgIMfm6Sgq5ZC9oD-yJmcCGwtnwsa__JaDqppYYnjIdfeKwxQ3YUpS-U2ZgmNATbFfdIWFX4aXhyQqc7WIhmYpVERA2TpcRDiQSVVKhPQX7LdH5TtZEizux5tIFmoz16LKBA12hX7kpNF4ncGoTTwGHV933vjfUe1kWmpAc5_OhEpx4e_9smr',
-    likes: 210,
-    author: 'Elena',
-    authorInitial: 'E',
-  },
-  {
-    id: 'mem-4',
-    title: 'First Apartment Keys',
-    date: 'November 18 • New Keys',
-    category: 'milestones',
-    tag: 'Milestones',
-    caption: '“Eating cold takeout pizza on cardboard moving boxes, declaring ourselves official adults.”',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDP-T3XBOh2wrzDHoD4rWhTkvpMnzJFw21Z2wFVpMmPO2x6Os0Q0Q0KDewVwsmyQ8YvDc3BbxR4Qhf4qtSZ4mLEv53ImJtdTQn-cVtDWyWzzCuP8TGGYjeLJxJLSHzjNhS5J7IggOvitXtq37ixE5ob2d0rNBdO8wPaSbeo8B-DLrj3AjUWDfsHKUgXF0Q2_BwI46jP2oYikpx5qfOuAdlQuljvYuqTWbc6At-kXCS1RdhYp2UpR2Jx',
-    likes: 176,
-    author: 'Chloe',
-    authorInitial: 'C',
-  },
-  {
-    id: 'mem-5',
-    title: 'Strip 4 of 12 Unfiltered',
-    date: 'January 02 • Arcade night',
-    category: 'silly',
-    tag: 'Photo Booth',
-    caption: '“We spent our last ten dollars on the vintage camera booth instead of dinner.”',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBrAcLH0LRJ-yOZDagP4vDw9wgA68ZzzX1moG_Tpl8ur5UDuG7FCC3Fa9icqnzHhA__Exerpgq259alHSgTLQN_bvtGXNeUtume29o6XQfkzugnsXXfxyfmmpdH7chQCC6HWxMK2Shmw-a4idzNAQxz0axL9C0n-0rqLZTlEJUBKi8QgDKEC_6GZldS4u3bGqNk3NudJ9cSTuqIPoOhs-AJhkI-ooiuH2ccYx6GsOXx4iOvgG8IOlc9',
-    likes: 241,
-    author: 'Jess',
-    authorInitial: 'J',
-  },
-];
-
-const DEFAULT_LETTERS: LetterItem[] = [
-  {
-    id: 'letter-scary-dreams',
-    title: 'When you have big scary dreams ahead',
-    condition: 'Open When: You have big scary dreams ahead',
-    preview: 'You were never meant for a small, timid life...',
-    content: `My brilliant friend,\n\nWhenever the world feels daunting and your ambitions feel larger than your hands, please remember how many mountain passes you have already traversed.\n\nYou have an instinct that is sharp, a heart that is stubborn in the best ways, and an imagination that deserves to take up space. Don't shrink to fit rooms that were built before you arrived.\n\nTake the leap. Even if your knees shake, take it anyway. I will be right here on the ground, cheering with bells on, ready with celebration lattes or ice cream depending on the day.\n\nYou've got this. You always have.\n\nWith unending faith in you,\nYour Biggest Fan`,
-  },
-  {
-    id: 'letter-late-night-drives',
-    title: 'When you miss our late-night drives',
-    condition: 'Open When: You miss our late-night drives',
-    preview: 'Roll down the window, put on that 2010s playlist...',
-    content: `Hey night owl,\n\nIf you're missing the chill of coastal air through cracked windows and the sound of our voices harmonizing terribly to songs we only half-remembered: close your eyes for five seconds.\n\nPicture the yellow streetlights streaking against the dashboard. Smell the warm French fries in the passenger seat. That warmth isn't gone; it's saved in the bank of our memories, earning interest every single day.\n\nText me right now, even if it's 3 AM. I might be asleep, but I'll wake up to your ping with a grin on my face.\n\nUntil the next empty highway,\nYour Road Trip Navigator`,
-  },
-  {
-    id: 'letter-rainy-days',
-    title: 'When you need a reminder of how loved you are',
-    condition: 'Open When: You need a gentle reminder of your light',
-    preview: 'On days when you feel invisible or exhausted...',
-    content: `Dearest soul,\n\nIf today was unkind to you, please be extra gentle with yourself tonight. Make yourself hot chamomile tea, wrap yourself in the softest blanket in your home, and lay down your worries.\n\nYou do not have to be remarkable every single hour. Your worth has never been tied to productivity. You are deeply cherished simply for your laugh, your kindness, and the way you care for the people in your orbit.\n\nRest up. The sun will rise again tomorrow, and so will you.\n\nAlways and forever in your corner,\nWith all my love`,
-  },
-];
-
-const DEFAULT_WISHES: StickyWish[] = [
-  {
-    id: 'w-1',
-    name: 'Maya L.',
-    note: 'Thank you for being the first person who made this city feel like a home. You are pure sunlight.',
-    stamp: '💐',
-    tag: '#sunshine',
-    timestamp: 'Today, 2:15 PM',
-    colorTheme: 'ivory',
-  },
-  {
-    id: 'w-2',
-    name: 'Lucas T.',
-    note: 'I still laugh whenever I think of us trying to pitch a tent in 30mph coastal winds. Never change!',
-    stamp: '✨',
-    tag: '#tentDisaster',
-    timestamp: 'Yesterday',
-    colorTheme: 'rose',
-  },
-  {
-    id: 'w-3',
-    name: 'Anika & Jordan',
-    note: 'May this next year bring you all the gentle peace and roaring adventures you so deeply deserve!',
-    stamp: '💖',
-    tag: '#blessings',
-    timestamp: '3 days ago',
-    colorTheme: 'gold',
-  },
-  {
-    id: 'w-4',
-    name: 'Chloe V.',
-    note: 'To the designated driver of my chaotic thoughts and the best co-pilot in the cosmos!',
-    stamp: '🥂',
-    tag: '#forever',
-    timestamp: '1 week ago',
-    colorTheme: 'soft-taupe',
-  },
-];
 
 export default function App() {
   const petalCanvasRef = useRef<PetalCanvasHandle | null>(null);
 
-  // Theme state: 'romantic' or 'aquatic'
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const cached = localStorage.getItem('rosewood_theme');
-    if (cached === 'aquatic' || cached === 'romantic') {
-      return cached;
-    }
-    return 'romantic';
+    return cached === 'aquatic' ? 'aquatic' : 'romantic';
   });
 
-  // App State with localStorage caching
-  const [settings, setSettings] = useState<KeepsakeSettings>(() => {
-    const cached = localStorage.getItem('rosewood_settings');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        return {
-          ...parsed,
-          recipientName: 'Srishti and Manav',
-          subtitle: 'Shishi- My kuch puchuu',
-          startDate: '2025-12-01',
-          mainQuote: 'From a long-distance spark to right here in my arms',
-        };
-      } catch {
-        return DEFAULT_SETTINGS;
-      }
-    }
-    return DEFAULT_SETTINGS;
-  });
-
-  const [milestones, setMilestones] = useState<Milestone[]>(() => {
-    const cached = localStorage.getItem('rosewood_milestones');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        return DEFAULT_MILESTONES;
-      }
-    }
-    return DEFAULT_MILESTONES;
-  });
-
-  const [memories, setMemories] = useState<MemoryItem[]>(() => {
-    const cached = localStorage.getItem('rosewood_memories');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        return DEFAULT_MEMORIES;
-      }
-    }
-    return DEFAULT_MEMORIES;
-  });
-
-  const [letters, setLetters] = useState<LetterItem[]>(() => {
-    const cached = localStorage.getItem('rosewood_letters');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        return DEFAULT_LETTERS;
-      }
-    }
-    return DEFAULT_LETTERS;
-  });
-
-  const [wishes, setWishes] = useState<StickyWish[]>(() => {
-    const cached = localStorage.getItem('rosewood_wishes');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        return DEFAULT_WISHES;
-      }
-    }
-    return DEFAULT_WISHES;
-  });
-
-  // Navigation & modals
-  const [activeSection, setActiveSection] = useState('hero');
+  // Kept muted by default on initial load
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [loadingSanctuary, setLoadingSanctuary] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [publicHero, setPublicHero] = useState<Partial<KeepsakeSettings>>(DEFAULT_PUBLIC_HERO);
+  const [sanctuary, setSanctuary] = useState<SanctuaryState | null>(null);
+  const [currentPage, setCurrentPage] = useState<AppPage>('home');
+
+  const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
   const [selectedLetter, setSelectedLetter] = useState<LetterItem | null>(null);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
-  const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Sync state to localStorage
+  const notify = useCallback((type: 'success' | 'error' | 'info', text: string) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setToasts((prev) => [...prev, { id, type, text }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4200);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('rosewood_theme', theme);
   }, [theme]);
 
-  useEffect(() => {
-    localStorage.setItem('rosewood_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem('rosewood_milestones', JSON.stringify(milestones));
-  }, [milestones]);
-
-  useEffect(() => {
-    localStorage.setItem('rosewood_memories', JSON.stringify(memories));
-  }, [memories]);
-
-  useEffect(() => {
-    localStorage.setItem('rosewood_letters', JSON.stringify(letters));
-  }, [letters]);
-
-  useEffect(() => {
-    localStorage.setItem('rosewood_wishes', JSON.stringify(wishes));
-  }, [wishes]);
-
-  // Petal / Bubble burst trigger (ONLY showers when button is pushed!)
-  const handleShowerPetals = (count = 50) => {
-    if (petalCanvasRef.current) {
-      petalCanvasRef.current.burst(count);
+  const loadSanctuary = useCallback(async () => {
+    setLoadingSanctuary(true);
+    try {
+      const data = await apiFetch<SanctuaryState>('/api/sanctuary');
+      setSanctuary(data);
+      setPublicHero({
+        recipientName: data.settings.recipientName,
+        subtitle: data.settings.subtitle,
+        startDate: data.settings.startDate,
+        mainQuote: data.settings.mainQuote,
+        heroImageUrl: data.settings.heroImageUrl,
+      });
+    } catch (err: any) {
+      notify('error', err.message || 'Could not load sanctuary.');
+    } finally {
+      setLoadingSanctuary(false);
     }
-    if (theme === 'aquatic') {
-      playBubbleSplashChime();
-    } else {
-      playPetalShowerChime();
+  }, [notify]);
+
+  useEffect(() => {
+    let active = true;
+    async function boot() {
+      try {
+        const hero = await apiFetch<Partial<KeepsakeSettings>>('/api/public/hero');
+        if (active && hero) {
+          setPublicHero(hero);
+        }
+      } catch {
+        // fallback hero remains
+      }
+
+      if (!getAuthToken()) {
+        // Also try cookie-based session if present
+        try {
+          const meRes = await apiFetch<{ user: UserProfile }>('/api/auth/me');
+          if (active && meRes?.user) {
+            setUser(meRes.user);
+            await loadSanctuary();
+          }
+        } catch {
+          // Not authenticated
+        } finally {
+          if (active) setCheckingSession(false);
+        }
+        return;
+      }
+
+      try {
+        const meRes = await apiFetch<{ user: UserProfile }>('/api/auth/me');
+        if (active && meRes?.user) {
+          setUser(meRes.user);
+          await loadSanctuary();
+        }
+      } catch {
+        setAuthToken(null);
+        if (active) {
+          setUser(null);
+          setSanctuary(null);
+        }
+      } finally {
+        if (active) setCheckingSession(false);
+      }
     }
-    setSettings((prev) => ({
-      ...prev,
-      petalsGiven: prev.petalsGiven + count,
-    }));
+
+    boot();
+    return () => {
+      active = false;
+      stopAmbientMusic();
+    };
+  }, [loadSanctuary]);
+
+  const handleAuthenticated = async (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+    setCurrentPage('home');
+    if (
+      !localStorage.getItem('rosewood_theme') &&
+      (loggedInUser.preferredTheme === 'aquatic' || loggedInUser.preferredTheme === 'romantic')
+    ) {
+      setTheme(loggedInUser.preferredTheme);
+    }
+    await loadSanctuary();
+    notify('success', `Welcome back, ${loggedInUser.displayName}!`);
   };
 
-  const handleToggleTheme = (newTheme: ThemeMode) => {
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore network errors on logout
+    }
+    stopAmbientMusic();
+    setIsMusicPlaying(false);
+    setAuthToken(null);
+    setUser(null);
+    setSanctuary(null);
+    setSelectedMemory(null);
+    setSelectedLetter(null);
+    setIsCertificateOpen(false);
+    setCurrentPage('home');
+    notify('info', 'Signed out of your private sanctuary.');
+  };
+
+  const handleAccountDeleted = () => {
+    stopAmbientMusic();
+    setIsMusicPlaying(false);
+    setAuthToken(null);
+    setUser(null);
+    setSanctuary(null);
+    setSelectedMemory(null);
+    setSelectedLetter(null);
+    setIsCertificateOpen(false);
+    setCurrentPage('home');
+    notify('info', 'Your account has been removed and private entries deleted.');
+  };
+
+  const handleShowerPetals = (count = 40) => {
+    petalCanvasRef.current?.burst(count);
+    if (isMusicPlaying) {
+      if (theme === 'aquatic') {
+        playBubbleSplashChime();
+      } else {
+        playPetalShowerChime();
+      }
+    }
+  };
+
+  const handleToggleTheme = async (newTheme: ThemeMode) => {
     setTheme(newTheme);
-    if (newTheme === 'aquatic') {
-      playBubbleSplashChime();
-    } else {
-      playPetalShowerChime();
-    }
-    if (petalCanvasRef.current) {
-      petalCanvasRef.current.burst(25);
-    }
+    localStorage.setItem('rosewood_theme', newTheme);
+    petalCanvasRef.current?.burst(25);
     if (isMusicPlaying) {
       stopAmbientMusic();
       startAmbientMusic(newTheme);
+      if (newTheme === 'aquatic') {
+        playBubbleSplashChime();
+      } else {
+        playPetalShowerChime();
+      }
+    }
+    if (user) {
+      try {
+        const res = await apiFetch<{ user: UserProfile }>('/api/auth/profile', {
+          method: 'PATCH',
+          body: JSON.stringify({ preferredTheme: newTheme }),
+        });
+        setUser(res.user);
+      } catch {
+        // non-blocking preference sync
+      }
     }
   };
 
@@ -369,294 +251,634 @@ export default function App() {
     });
     setIsMusicPlaying(nextState);
     if (nextState) {
-      handleShowerPetals(25);
+      petalCanvasRef.current?.burst(25);
+      if (theme === 'aquatic') {
+        playBubbleSplashChime();
+      } else {
+        playPetalShowerChime();
+      }
     }
   };
 
-  const handleNavigate = (sectionId: string) => {
-    setActiveSection(sectionId);
-    if (sectionId === 'hero') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    const elem = document.getElementById(sectionId);
-    if (elem) {
-      const topOffset = elem.getBoundingClientRect().top + window.pageYOffset - 90;
-      window.scrollTo({ top: topOffset, behavior: 'smooth' });
-    }
+  const handleUpdateHeroSettings = async (patch: Partial<KeepsakeSettings>) => {
+    const res = await apiFetch<{ settings: KeepsakeSettings }>('/api/sanctuary/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+    setSanctuary((prev) => (prev ? { ...prev, settings: res.settings } : prev));
+    setPublicHero({
+      recipientName: res.settings.recipientName,
+      subtitle: res.settings.subtitle,
+      startDate: res.settings.startDate,
+      mainQuote: res.settings.mainQuote,
+      heroImageUrl: res.settings.heroImageUrl,
+    });
   };
 
-  // Milestone actions
-  const handleAddMilestone = (newMilestone: Omit<Milestone, 'id'>) => {
-    const item: Milestone = {
-      ...newMilestone,
-      id: `m-${Date.now()}`,
-    };
-    setMilestones((prev) => [...prev, item]);
+  const handleUpdateProfile = async (patch: Partial<UserProfile>) => {
+    const res = await apiFetch<{ user: UserProfile }>('/api/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+    setUser(res.user);
+    setSanctuary((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        partners: prev.partners.map((p) =>
+          p.id === res.user.id
+            ? {
+                ...p,
+                displayName: res.user.displayName,
+                nickname: res.user.nickname,
+                avatarUrl: res.user.avatarUrl,
+                bio: res.user.bio,
+              }
+            : p
+        ),
+      };
+    });
   };
 
-  const handleEditMilestone = (updated: Milestone) => {
-    setMilestones((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-  };
-
-  const handleDeleteMilestone = (id: string) => {
-    setMilestones((prev) => prev.filter((m) => m.id !== id));
-  };
-
-  // Memory actions
-  const handleAddMemory = (newMemory: Omit<MemoryItem, 'id' | 'likes'>) => {
-    const item: MemoryItem = {
-      ...newMemory,
-      id: `mem-${Date.now()}`,
-      likes: 1,
-    };
-    setMemories((prev) => [item, ...prev]);
-  };
-
-  const handleEditMemory = (updated: MemoryItem) => {
-    setMemories((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-  };
-
-  const handleDeleteMemory = (id: string) => {
-    setMemories((prev) => prev.filter((m) => m.id !== id));
-  };
-
-  const handleLikeMemory = (id: string) => {
-    setMemories((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, likes: m.likes + 1 } : m))
+  // Little Things CRUD
+  const handleAddLittleThing = async (item: {
+    category: LittleThingCategory;
+    title: string;
+    note: string;
+  }) => {
+    const created = await apiFetch<LittleThingItem>('/api/little-things', {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+    setSanctuary((prev) =>
+      prev ? { ...prev, littleThings: [created, ...prev.littleThings] } : prev
     );
   };
 
-  // Letter actions
-  const handleAddLetter = (newLetter: Omit<LetterItem, 'id'>) => {
-    const item: LetterItem = {
-      ...newLetter,
-      id: `letter-${Date.now()}`,
-      isCustom: true,
-    };
-    setLetters((prev) => [...prev, item]);
+  const handleDeleteLittleThing = async (id: string) => {
+    await apiFetch(`/api/little-things/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, littleThings: prev.littleThings.filter((i) => i.id !== id) } : prev
+    );
+    notify('info', 'Removed from Little Things We Love.');
   };
 
-  const handleEditLetter = (updated: LetterItem) => {
-    setLetters((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+  // Milestones CRUD
+  const handleAddMilestone = async (milestone: {
+    chapter: string;
+    date: string;
+    displayDate?: string;
+    title: string;
+    description: string;
+    location: string;
+    photoUrl?: string;
+    icon: string;
+  }) => {
+    const created = await apiFetch<Milestone>('/api/milestones', {
+      method: 'POST',
+      body: JSON.stringify(milestone),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? {
+            ...prev,
+            milestones: [...prev.milestones, created].sort((a, b) =>
+              a.date.localeCompare(b.date)
+            ),
+          }
+        : prev
+    );
   };
 
-  const handleDeleteLetter = (id: string) => {
-    setLetters((prev) => prev.filter((l) => l.id !== id));
+  const handleEditMilestone = async (updated: Milestone) => {
+    const saved = await apiFetch<Milestone>(`/api/milestones/${updated.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updated),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? {
+            ...prev,
+            milestones: prev.milestones
+              .map((m) => (m.id === saved.id ? saved : m))
+              .sort((a, b) => a.date.localeCompare(b.date)),
+          }
+        : prev
+    );
   };
 
-  const handleEditMainLetter = (title: string, content: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      mainLetterTitle: title,
-      mainLetterContent: content,
-    }));
+  const handleDeleteMilestone = async (id: string) => {
+    await apiFetch(`/api/milestones/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, milestones: prev.milestones.filter((m) => m.id !== id) } : prev
+    );
+    notify('info', 'Milestone removed.');
   };
 
-  // Wish actions
-  const handleAddWish = (newWish: Omit<StickyWish, 'id' | 'timestamp'>) => {
-    const item: StickyWish = {
-      ...newWish,
-      id: `w-${Date.now()}`,
-      timestamp: 'Just now',
-    };
-    setWishes((prev) => [item, ...prev]);
+  // Memories CRUD
+  const handleAddMemory = async (memory: {
+    title: string;
+    date: string;
+    location: string;
+    category: MemoryCategory;
+    caption: string;
+    imageUrl: string;
+  }) => {
+    const created = await apiFetch<MemoryItem>('/api/memories', {
+      method: 'POST',
+      body: JSON.stringify(memory),
+    });
+    setSanctuary((prev) => (prev ? { ...prev, memories: [created, ...prev.memories] } : prev));
   };
 
-  const handleEditWish = (updated: StickyWish) => {
-    setWishes((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+  const handleEditMemory = async (updated: MemoryItem) => {
+    const saved = await apiFetch<MemoryItem>(`/api/memories/${updated.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updated),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? { ...prev, memories: prev.memories.map((m) => (m.id === saved.id ? saved : m)) }
+        : prev
+    );
+    if (selectedMemory?.id === saved.id) setSelectedMemory(saved);
   };
 
-  const handleDeleteWish = (id: string) => {
-    setWishes((prev) => prev.filter((w) => w.id !== id));
+  const handleDeleteMemory = async (id: string) => {
+    await apiFetch(`/api/memories/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, memories: prev.memories.filter((m) => m.id !== id) } : prev
+    );
+    if (selectedMemory?.id === id) setSelectedMemory(null);
+    notify('info', 'Memory deleted.');
   };
 
-  const handleOpenPhotoLightbox = (imgUrl: string, title: string) => {
+  const handleLikeMemory = async (id: string) => {
+    if (id === 'hero-portrait') {
+      handleShowerPetals(25);
+      return;
+    }
+    const saved = await apiFetch<MemoryItem>(`/api/memories/${id}/like`, { method: 'POST' });
+    setSanctuary((prev) =>
+      prev
+        ? { ...prev, memories: prev.memories.map((m) => (m.id === saved.id ? saved : m)) }
+        : prev
+    );
+    if (selectedMemory?.id === saved.id) setSelectedMemory(saved);
+  };
+
+  const handleAddMemoryNote = async (memoryId: string, text: string) => {
+    const saved = await apiFetch<MemoryItem>(`/api/memories/${memoryId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? { ...prev, memories: prev.memories.map((m) => (m.id === saved.id ? saved : m)) }
+        : prev
+    );
+    if (selectedMemory?.id === saved.id) setSelectedMemory(saved);
+  };
+
+  // Letters CRUD
+  const handleAddLetter = async (letter: {
+    title: string;
+    condition: string;
+    content: string;
+    date: string;
+    unlockDate?: string;
+    status: 'draft' | 'sent';
+    visibility: VisibilityMode;
+  }) => {
+    const created = await apiFetch<LetterItem>('/api/letters', {
+      method: 'POST',
+      body: JSON.stringify(letter),
+    });
+    setSanctuary((prev) => (prev ? { ...prev, letters: [created, ...prev.letters] } : prev));
+  };
+
+  const handleEditLetter = async (updated: LetterItem) => {
+    const saved = await apiFetch<LetterItem>(`/api/letters/${updated.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updated),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? { ...prev, letters: prev.letters.map((l) => (l.id === saved.id ? saved : l)) }
+        : prev
+    );
+    if (selectedLetter?.id === saved.id) setSelectedLetter(saved);
+  };
+
+  const handleDeleteLetter = async (id: string) => {
+    await apiFetch(`/api/letters/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, letters: prev.letters.filter((l) => l.id !== id) } : prev
+    );
+    if (selectedLetter?.id === id) setSelectedLetter(null);
+    notify('info', 'Letter removed.');
+  };
+
+  const handleEditMainLetter = async (title: string, content: string) => {
+    await handleUpdateHeroSettings({ mainLetterTitle: title, mainLetterContent: content });
+  };
+
+  // Journal CRUD
+  const handleAddJournalEntry = async (entry: {
+    date: string;
+    title: string;
+    content: string;
+    mood: JournalMood;
+    photoUrl?: string;
+    visibility: VisibilityMode;
+  }) => {
+    const created = await apiFetch<JournalEntry>('/api/journal', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? {
+            ...prev,
+            journal: [created, ...prev.journal].sort((a, b) => b.date.localeCompare(a.date)),
+          }
+        : prev
+    );
+  };
+
+  const handleEditJournalEntry = async (updated: JournalEntry) => {
+    const saved = await apiFetch<JournalEntry>(`/api/journal/${updated.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updated),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? {
+            ...prev,
+            journal: prev.journal
+              .map((j) => (j.id === saved.id ? saved : j))
+              .sort((a, b) => b.date.localeCompare(a.date)),
+          }
+        : prev
+    );
+  };
+
+  const handleDeleteJournalEntry = async (id: string) => {
+    await apiFetch(`/api/journal/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, journal: prev.journal.filter((j) => j.id !== id) } : prev
+    );
+    notify('info', 'Journal entry deleted.');
+  };
+
+  // Bucket List CRUD
+  const handleAddBucketItem = async (item: {
+    title: string;
+    description: string;
+    category: BucketCategory;
+    targetDate?: string;
+  }) => {
+    const created = await apiFetch<BucketItem>('/api/bucket-list', {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+    setSanctuary((prev) =>
+      prev ? { ...prev, bucketList: [created, ...prev.bucketList] } : prev
+    );
+  };
+
+  const handleUpdateBucketItem = async (updated: BucketItem) => {
+    const saved = await apiFetch<BucketItem>(`/api/bucket-list/${updated.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updated),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? {
+            ...prev,
+            bucketList: prev.bucketList.map((b) => (b.id === saved.id ? saved : b)),
+          }
+        : prev
+    );
+  };
+
+  const handleDeleteBucketItem = async (id: string) => {
+    await apiFetch(`/api/bucket-list/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, bucketList: prev.bucketList.filter((b) => b.id !== id) } : prev
+    );
+    notify('info', 'Bucket list item deleted.');
+  };
+
+  const handleQuickToggleBucket = async (item: BucketItem) => {
+    const nextCompleted = !item.completed;
+    await handleUpdateBucketItem({
+      ...item,
+      completed: nextCompleted,
+      completedAt: nextCompleted ? new Date().toISOString().slice(0, 10) : '',
+    });
+    if (nextCompleted) handleShowerPetals(30);
+    notify('success', nextCompleted ? 'Dream marked completed!' : 'Moved back to pending.');
+  };
+
+  // Special Dates CRUD
+  const handleAddEvent = async (ev: {
+    title: string;
+    date: string;
+    type: SpecialEventType;
+    description: string;
+    recurringYearly: boolean;
+    reminderDays: number | null;
+  }) => {
+    const created = await apiFetch<SpecialDateEvent>('/api/special-dates', {
+      method: 'POST',
+      body: JSON.stringify(ev),
+    });
+    setSanctuary((prev) =>
+      prev ? { ...prev, specialDates: [...prev.specialDates, created] } : prev
+    );
+  };
+
+  const handleUpdateEvent = async (updated: SpecialDateEvent) => {
+    const saved = await apiFetch<SpecialDateEvent>(`/api/special-dates/${updated.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updated),
+    });
+    setSanctuary((prev) =>
+      prev
+        ? {
+            ...prev,
+            specialDates: prev.specialDates.map((s) => (s.id === saved.id ? saved : s)),
+          }
+        : prev
+    );
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    await apiFetch(`/api/special-dates/${id}`, { method: 'DELETE' });
+    setSanctuary((prev) =>
+      prev ? { ...prev, specialDates: prev.specialDates.filter((s) => s.id !== id) } : prev
+    );
+    notify('info', 'Special date removed.');
+  };
+
+  const handleOpenHeroLightbox = () => {
+    if (!sanctuary) return;
     setSelectedMemory({
       id: 'hero-portrait',
-      title,
-      date: 'Cherished Forever',
-      category: 'milestones',
-      tag: 'Heart of Keepsake',
-      caption: settings.mainQuote,
-      imageUrl: imgUrl,
+      title: sanctuary.settings.heroPhotoLabel || 'Srishti & Manav',
+      date: sanctuary.settings.startDate,
+      location: 'Our Sanctuary',
+      category: 'Favorite Photos',
+      caption: sanctuary.settings.mainQuote,
+      imageUrl: sanctuary.settings.heroImageUrl,
       likes: 520,
-      author: settings.recipientName,
+      authorId: 'user-manav',
+      authorName: sanctuary.settings.recipientName,
       authorInitial: '❤',
+      notes: [],
     });
   };
 
   const isAquatic = theme === 'aquatic';
+  const settings = sanctuary?.settings;
 
   return (
     <div
       className={`relative min-h-screen transition-colors duration-700 font-sans antialiased overflow-x-hidden ${
         isAquatic
-          ? 'bg-gradient-to-b from-[#f0f8ff] via-[#e6f4f8] to-[#edf7fa] text-[#03045e] selection:bg-[#caf0f8] selection:text-[#0077b6]'
-          : 'bg-gradient-to-b from-[#fff5f8] via-[#ffeaf1] to-[#fff0f6] text-[#4a1525] selection:bg-[#fbcfe8] selection:text-[#831843]'
+          ? 'bg-gradient-to-b from-[#f0f8ff] via-[#e6f4f8] to-[#edf7fa] text-[#03045e] bg-aquatic-texture selection:bg-[#caf0f8] selection:text-[#0077b6]'
+          : 'bg-gradient-to-b from-[#FFF7F9] via-[#FFEBF2] to-[#FFF9F2] text-[#44313B] bg-sanctuary-texture selection:bg-[#FBCFE8] selection:text-[#BE185D]'
       }`}
     >
-      {/* 1. Only showers when button is pushed: Petal/Bubble Canvas */}
-      <PetalCanvas
-        ref={petalCanvasRef}
-        theme={theme}
-        onPetalAdded={(count) => {
-          setSettings((prev) => ({
-            ...prev,
-            petalsGiven: prev.petalsGiven + count,
-          }));
-        }}
-      />
+      {/* Interactive Burst Canvas */}
+      <PetalCanvas ref={petalCanvasRef} theme={theme} />
 
-      {/* 2. Background continuous animations based on selected theme */}
+      {/* Continuous Theme Background Motion */}
       {isAquatic ? (
         <>
-          {/* Animated cute cartoon seals, otters, sharks, beluga whales, and normal whales! */}
           <AquaticBackground />
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#90e0ef]/20 blur-[140px] rounded-full pointer-events-none -z-10" />
-          <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#caf0f8]/30 blur-[130px] rounded-full pointer-events-none -z-10" />
-          <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#48cae4]/15 blur-[150px] rounded-full pointer-events-none -z-10" />
+          <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[620px] h-[620px] bg-[#90e0ef]/20 blur-[140px] rounded-full pointer-events-none -z-10" />
+          <div className="fixed bottom-0 -left-40 w-[500px] h-[500px] bg-[#caf0f8]/30 blur-[130px] rounded-full pointer-events-none -z-10" />
         </>
       ) : (
         <>
-          {/* Sweet Romantic continuous motion: flying love doves with roses, winged love letters, chibi cupid, heart hot air balloon, swans, and floating hearts! */}
           <RomanticBackground />
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-[#fbcfe8]/45 blur-[140px] rounded-full pointer-events-none -z-10" />
-          <div className="absolute top-[800px] -left-40 w-[500px] h-[500px] bg-[#f472b6]/25 blur-[130px] rounded-full pointer-events-none -z-10" />
-          <div className="absolute top-[1800px] -right-40 w-[600px] h-[600px] bg-[#fda4af]/35 blur-[150px] rounded-full pointer-events-none -z-10" />
+          <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[620px] h-[620px] bg-[#FBCFE8]/35 blur-[140px] rounded-full pointer-events-none -z-10" />
+          <div className="fixed bottom-0 -right-40 w-[520px] h-[520px] bg-[#EDE9FE]/45 blur-[140px] rounded-full pointer-events-none -z-10" />
         </>
       )}
 
-      {/* Floating Single Shower Action Button (No count badge anywhere as requested) */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center">
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} theme={theme} />
+
+      {/* Single Floating Shower Button at Bottom-Right (No count badge) */}
+      <div className="fixed bottom-5 right-5 z-40">
         <button
-          aria-label={isAquatic ? 'Trigger Bubble Shower' : 'Trigger Petal Shower'}
-          onClick={() => handleShowerPetals(40)}
-          className={`relative group p-4 text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer border ${
-            isAquatic
-              ? 'bg-[#0077b6] hover:bg-[#023e8a] border-[#caf0f8] shadow-[0_8px_24px_rgba(0,119,182,0.4)]'
-              : 'bg-gradient-to-tr from-[#ec4899] to-[#f43f5e] hover:from-[#db2777] hover:to-[#e11d48] border-[#fce7f3] shadow-[0_8px_24px_rgba(236,72,153,0.4)]'
-          }`}
           type="button"
+          onClick={() => handleShowerPetals(40)}
+          aria-label={isAquatic ? 'Shower Sea Bubbles' : 'Shower Flower Petals'}
           title={isAquatic ? 'Shower sea bubbles & pearls' : 'Shower flower petals'}
+          className={`w-14 h-14 rounded-full text-white shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer border ${
+            isAquatic
+              ? 'bg-[#0077B6] hover:bg-[#023e8a] border-[#caf0f8] shadow-[0_8px_24px_rgba(0,119,182,0.35)]'
+              : 'bg-gradient-to-tr from-[#EC4899] to-[#BE185D] hover:opacity-95 border-[#FCE7F3] shadow-[0_8px_24px_rgba(236,72,153,0.35)]'
+          }`}
         >
-          <span className="material-symbols-outlined text-[26px] text-[#ffe088] transition-transform group-hover:rotate-45">
+          <span className="material-symbols-outlined text-[25px] text-[#ffe088]">
             {isAquatic ? 'bubble_chart' : 'local_florist'}
-          </span>
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span
-              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                isAquatic ? 'bg-[#90e0ef]' : 'bg-[#ffe088]'
-              }`}
-            />
-            <span
-              className={`relative inline-flex rounded-full h-3 w-3 ${
-                isAquatic ? 'bg-[#48cae4]' : 'bg-[#fed65b]'
-              }`}
-            />
           </span>
         </button>
       </div>
 
-      {/* Header with Theme Slider Switch */}
+      {/* Preserved 3-Zone Header */}
       <Header
         theme={theme}
         onToggleTheme={handleToggleTheme}
         isMusicPlaying={isMusicPlaying}
         onToggleMusic={handleToggleMusic}
-        recipientName={settings.recipientName}
-        subtitle={settings.subtitle}
+        recipientName={settings?.recipientName || publicHero.recipientName || 'Srishti and Manav'}
+        subtitle={settings?.subtitle || publicHero.subtitle || 'Shishi- My kuchu puchuu'}
+        currentPage={currentPage}
+        onNavigatePage={setCurrentPage}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* Main Content */}
-      <main className="w-full pt-20 min-h-[calc(100vh-160px)] relative z-10">
-        {/* Hero Section with Live 24hr Day Counter Icon */}
-        <HeroSection
-          settings={settings}
-          theme={theme}
-          onAddMemoryClick={() => handleNavigate('wish-wall')}
-          onOpenPhotoLightbox={handleOpenPhotoLightbox}
-        />
+      <main className="w-full pt-20 md:pt-24 min-h-[calc(100vh-180px)] relative z-10">
+        {checkingSession || (user && loadingSanctuary && !sanctuary) ? (
+          <div className="max-w-md mx-auto py-28 px-4 text-center">
+            <div
+              className={`w-12 h-12 rounded-full border-4 border-t-transparent animate-spin mx-auto mb-4 ${
+                isAquatic ? 'border-[#0077B6]' : 'border-[#EC4899]'
+              }`}
+            />
+            <p className="font-serif text-xl">Opening Srishti &amp; Manav’s Sanctuary...</p>
+          </div>
+        ) : !user || !sanctuary ? (
+          <AuthGate
+            theme={theme}
+            publicHero={publicHero}
+            onAuthenticated={handleAuthenticated}
+          />
+        ) : (
+          <>
+            {currentPage === 'home' && (
+              <HomeDashboard
+                theme={theme}
+                settings={sanctuary.settings}
+                milestones={sanctuary.milestones}
+                memories={sanctuary.memories}
+                littleThings={sanctuary.littleThings}
+                bucketList={sanctuary.bucketList}
+                specialDates={sanctuary.specialDates}
+                onNavigatePage={setCurrentPage}
+                onOpenPhotoLightbox={handleOpenHeroLightbox}
+                onOpenMemoryLightbox={(m) => setSelectedMemory(m)}
+                onUpdateHeroSettings={handleUpdateHeroSettings}
+                onAddLittleThing={handleAddLittleThing}
+                onDeleteLittleThing={handleDeleteLittleThing}
+                onToggleBucketItem={handleQuickToggleBucket}
+                onNotify={notify}
+              />
+            )}
 
-        {/* Timeline Section with Edit & Delete */}
-        <TimelineSection
-          milestones={milestones}
-          theme={theme}
-          onAddMilestone={handleAddMilestone}
-          onEditMilestone={handleEditMilestone}
-          onDeleteMilestone={handleDeleteMilestone}
-          onShowerFlowers={() => handleShowerPetals(40)}
-        />
+            {currentPage === 'memories' && (
+              <MemoriesSection
+                memories={sanctuary.memories}
+                theme={theme}
+                onAddMemory={handleAddMemory}
+                onEditMemory={handleEditMemory}
+                onDeleteMemory={handleDeleteMemory}
+                onLikeMemory={handleLikeMemory}
+                onOpenLightbox={(m) => setSelectedMemory(m)}
+                onShowerFlowers={() => handleShowerPetals(30)}
+                onNotify={notify}
+              />
+            )}
 
-        {/* Gallery Section with Edit & Delete */}
-        <GallerySection
-          memories={memories}
-          theme={theme}
-          onAddMemory={handleAddMemory}
-          onEditMemory={handleEditMemory}
-          onDeleteMemory={handleDeleteMemory}
-          onLikeMemory={handleLikeMemory}
-          onOpenLightbox={(memory) => setSelectedMemory(memory)}
-          onShowerFlowers={() => handleShowerPetals(30)}
-        />
+            {currentPage === 'story' && (
+              <TimelineSection
+                milestones={sanctuary.milestones}
+                theme={theme}
+                onAddMilestone={handleAddMilestone}
+                onEditMilestone={handleEditMilestone}
+                onDeleteMilestone={handleDeleteMilestone}
+                onShowerFlowers={() => handleShowerPetals(35)}
+                onNotify={notify}
+              />
+            )}
 
-        {/* Letters & Envelopes Section with Edit & Delete */}
-        <LettersSection
-          letters={letters}
-          theme={theme}
-          mainLetterTitle={settings.mainLetterTitle}
-          mainLetterContent={settings.mainLetterContent}
-          onOpenLetter={(letter) => setSelectedLetter(letter)}
-          onAddLetter={handleAddLetter}
-          onEditLetter={handleEditLetter}
-          onDeleteLetter={handleDeleteLetter}
-          onEditMainLetter={handleEditMainLetter}
-          onOpenCertificate={() => setIsCertificateOpen(true)}
-          onShowerFlowers={() => handleShowerPetals(30)}
-          isMusicPlaying={isMusicPlaying}
-          onToggleMusic={handleToggleMusic}
-        />
+            {currentPage === 'letters' && (
+              <LettersSection
+                letters={sanctuary.letters}
+                currentUser={user}
+                theme={theme}
+                mainLetterTitle={sanctuary.settings.mainLetterTitle}
+                mainLetterContent={sanctuary.settings.mainLetterContent}
+                onOpenLetter={(letter) => setSelectedLetter(letter)}
+                onAddLetter={handleAddLetter}
+                onEditLetter={handleEditLetter}
+                onDeleteLetter={handleDeleteLetter}
+                onEditMainLetter={handleEditMainLetter}
+                onOpenCertificate={() => setIsCertificateOpen(true)}
+                onShowerFlowers={() => handleShowerPetals(30)}
+                isMusicPlaying={isMusicPlaying}
+                onToggleMusic={handleToggleMusic}
+                onNotify={notify}
+              />
+            )}
 
-        {/* Pinboard Wish Wall with Edit & Delete */}
-        <PinboardSection
-          wishes={wishes}
-          theme={theme}
-          onAddWish={handleAddWish}
-          onEditWish={handleEditWish}
-          onDeleteWish={handleDeleteWish}
-          onShowerFlowers={() => handleShowerPetals(40)}
-        />
+            {currentPage === 'journal' && (
+              <JournalSection
+                entries={sanctuary.journal}
+                currentUser={user}
+                theme={theme}
+                onAddEntry={handleAddJournalEntry}
+                onEditEntry={handleEditJournalEntry}
+                onDeleteEntry={handleDeleteJournalEntry}
+                onNotify={notify}
+              />
+            )}
 
-        {/* Celebration Banner */}
-        <CelebrationBanner
-          theme={theme}
-        />
+            {currentPage === 'bucket-list' && (
+              <BucketListSection
+                items={sanctuary.bucketList}
+                theme={theme}
+                onAddItem={handleAddBucketItem}
+                onUpdateItem={handleUpdateBucketItem}
+                onDeleteItem={handleDeleteBucketItem}
+                onShowerFlowers={() => handleShowerPetals(35)}
+                onNotify={notify}
+              />
+            )}
+
+            {currentPage === 'calendar' && (
+              <CalendarSection
+                events={sanctuary.specialDates}
+                theme={theme}
+                onAddEvent={handleAddEvent}
+                onUpdateEvent={handleUpdateEvent}
+                onDeleteEvent={handleDeleteEvent}
+                onNotify={notify}
+              />
+            )}
+
+            {currentPage === 'settings' && (
+              <SettingsSection
+                user={user}
+                partners={sanctuary.partners}
+                theme={theme}
+                isMusicPlaying={isMusicPlaying}
+                backendStatus={sanctuary.backendStatus}
+                onToggleTheme={handleToggleTheme}
+                onToggleMusic={handleToggleMusic}
+                onUpdateProfile={handleUpdateProfile}
+                onLogout={handleLogout}
+                onAccountDeleted={handleAccountDeleted}
+                onNotify={notify}
+              />
+            )}
+          </>
+        )}
       </main>
 
       {/* Footer */}
       <Footer
-        onNavigate={handleNavigate}
-        recipientName={settings.recipientName}
+        onNavigatePage={user ? setCurrentPage : undefined}
+        recipientName={settings?.recipientName || 'Srishti and Manav'}
+        theme={theme}
       />
 
       {/* Modals */}
       <OpenWhenModal
         letter={selectedLetter}
+        theme={theme}
         onClose={() => setSelectedLetter(null)}
-        onShowerFlowers={() => handleShowerPetals(35)}
+        onShowerFlowers={() => handleShowerPetals(30)}
       />
 
       <CertificateModal
         isOpen={isCertificateOpen}
         onClose={() => setIsCertificateOpen(false)}
-        recipientName={settings.recipientName}
-        onShowerFlowers={() => handleShowerPetals(50)}
+        recipientName={settings?.recipientName || 'Srishti and Manav'}
+        theme={theme}
+        onShowerFlowers={() => handleShowerPetals(45)}
       />
 
       <MemoryModal
         memory={selectedMemory}
+        memories={
+          selectedMemory?.id === 'hero-portrait' ? [] : sanctuary?.memories || []
+        }
+        theme={theme}
+        onSelectMemory={(m) => setSelectedMemory(m)}
         onClose={() => setSelectedMemory(null)}
         onLike={handleLikeMemory}
+        onAddNote={
+          selectedMemory?.id === 'hero-portrait' ? undefined : handleAddMemoryNote
+        }
         onShowerFlowers={() => handleShowerPetals(25)}
       />
     </div>

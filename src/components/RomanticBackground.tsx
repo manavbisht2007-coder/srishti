@@ -34,6 +34,7 @@ export const RomanticBackground: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
@@ -232,7 +233,9 @@ export const RomanticBackground: React.FC = () => {
         ctx.restore();
       });
 
-      animId = requestAnimationFrame(render);
+      if (!prefersReducedMotion) {
+        animId = requestAnimationFrame(render);
+      }
     };
 
     render();
@@ -246,7 +249,7 @@ export const RomanticBackground: React.FC = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0 w-full h-full"
+      className="fixed inset-0 pointer-events-none z-0 w-full h-full opacity-75"
       style={{ touchAction: 'none' }}
     />
   );

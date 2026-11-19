@@ -1,29 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { KeepsakeSettings, ThemeMode } from '../types';
 import {
   calculateYearsAndDays,
   getTimeUntilNextMidnight,
 } from '../utils/dateTracker';
+import { uploadPrivateImage } from '../utils/api';
+import { SafeImage } from './SafeImage';
 
 interface HeroSectionProps {
   settings: KeepsakeSettings;
   theme?: ThemeMode;
-  onAddMemoryClick: () => void;
-  onOpenPhotoLightbox: (imgUrl: string, title: string) => void;
+  onOpenPhotoLightbox: () => void;
+  onUpdateHeroSettings: (patch: Partial<KeepsakeSettings>) => Promise<void>;
+  onNavigateMemories: () => void;
+  onNotify: (type: 'success' | 'error' | 'info', text: string) => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   settings,
   theme = 'romantic',
-  onAddMemoryClick,
   onOpenPhotoLightbox,
+  onUpdateHeroSettings,
+  onNavigateMemories,
+  onNotify,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [lovedHeart, setLovedHeart] = useState(false);
   const [countdown, setCountdown] = useState(getTimeUntilNextMidnight());
+  const [editingMsg, setEditingMsg] = useState(false);
+  const [draftMsg, setDraftMsg] = useState(settings.heroMessage || '');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
   const isAquatic = theme === 'aquatic';
 
-  // Live 24-hour countdown ticker
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown(getTimeUntilNextMidnight());
@@ -31,247 +41,298 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const { years, totalDays } = calculateYearsAndDays(settings.startDate);
+  useEffect(() => {
+    setDraftMsg(settings.heroMessage || '');
+  }, [settings.heroMessage]);
 
-  const handleHeartClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLovedHeart(!lovedHeart);
+  const { years, months, remainingDays, totalDays } = calculateYearsAndDays(settings.startDate);
+
+  const handleSaveMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await onUpdateHeroSettings({ heroMessage: draftMsg.trim() });
+      setEditingMsg(false);
+      onNotify('success', 'Keepsake message updated.');
+    } catch (err: any) {
+      onNotify('error', err.message || 'Could not update message.');
+    }
+  };
+
+  const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadPrivateImage(file);
+      await onUpdateHeroSettings({ heroImageUrl: url });
+      onNotify('success', 'Keepsake portrait updated.');
+    } catch (err: any) {
+      onNotify('error', err.message || 'Could not upload portrait.');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   };
 
   return (
-    <section className="max-w-[1200px] mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16 w-full flex flex-col items-center text-center relative z-10">
-      {/* Milestone Overline & Counter (Auto-calculated from Start Date) */}
-      <div
-        className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full shadow-sm mb-6 border transition-colors ${
-          isAquatic
-            ? 'bg-[#e0fbfc]/90 border-[#90e0ef] text-[#03045e]'
-            : 'bg-[#fff0f5]/90 border-[#fbcfe8] text-[#be185d]'
-        }`}
-      >
-        <span className="material-symbols-outlined text-[16px] text-pink-500">
-          {isAquatic ? 'waves' : 'auto_awesome'}
-        </span>
-        <span className="text-[11px] font-bold tracking-widest uppercase font-sans">
-          {isAquatic
-            ? `Cherishing ${years > 0 ? `${years} Year${years > 1 ? 's' : ''} Together • ` : ''}${totalDays.toLocaleString()} Days in Our Haven`
-            : `Cherishing ${years > 0 ? `${years} Year${years > 1 ? 's' : ''} Together • ` : ''}${totalDays.toLocaleString()} Days of Radiance`}
-        </span>
-        <span className="material-symbols-outlined text-[16px] text-pink-500">
-          {isAquatic ? 'waves' : 'auto_awesome'}
-        </span>
-      </div>
-
-      {/* Poetic Main Title */}
-      <h1
-        className={`font-serif text-[38px] sm:text-[46px] md:text-[56px] max-w-4xl tracking-tight mb-4 leading-[1.14] transition-colors ${
-          isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
-        }`}
-      >
-        {isAquatic ? 'To The One Who Makes Every Ocean Calm' : 'To The One Who Makes Every Day Bloom'}
-      </h1>
-
-      {/* Poetic Pull Quote */}
-      <p
-        className={`font-serif italic text-lg sm:text-xl md:text-[22px] max-w-2xl mx-auto mb-10 leading-relaxed font-normal transition-colors ${
-          isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
-        }`}
-      >
-        “{settings.mainQuote}”
-      </p>
-
-      {/* Hero Portrait Keepsake Frame */}
-      <div
-        className="relative group my-4 w-full max-w-md mx-auto cursor-pointer"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={() => onOpenPhotoLightbox(settings.heroImageUrl, settings.heroPhotoLabel)}
-      >
-        {/* Glow effect */}
-        <div
-          className={`absolute inset-0 rounded-3xl blur-2xl transform transition-all duration-700 ${
-            isAquatic
-              ? 'bg-gradient-to-tr from-[#90e0ef]/45 via-[#caf0f8]/60 to-[#0077b6]/30'
-              : 'bg-gradient-to-tr from-[#f472b6]/35 via-[#fbcfe8]/60 to-[#fda4af]/30'
-          } ${isHovered ? 'scale-110 opacity-100' : 'scale-100 opacity-75'}`}
-        />
-
-        {/* Seal Accent Top Center */}
-        <div
-          onClick={handleHeartClick}
-          title={isAquatic ? 'Send a sea splash heartbeat' : 'Send a heartbeat'}
-          className={`absolute -top-5 left-1/2 -translate-x-1/2 z-20 w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer border ${
-            isAquatic
-              ? 'bg-[#0077b6] hover:bg-[#023e8a] text-[#fed65b] border-[#90e0ef]'
-              : 'bg-gradient-to-tr from-[#ec4899] to-[#f43f5e] hover:from-[#db2777] hover:to-[#e11d48] text-white border-[#fce7f3]'
-          }`}
-        >
-          <span
-            className={`material-symbols-outlined text-[22px] ${
-              lovedHeart ? (isAquatic ? 'text-[#ffb4a2]' : 'text-[#ffe4e6]') : ''
+    <section className="max-w-[1200px] mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-14 w-full relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        {/* Left: Editorial Copy, Poetic Quote, Customizable Message & Live Counter */}
+        <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
+          <p
+            className={`text-xs font-semibold tracking-wider uppercase mb-3 tabular-nums ${
+              isAquatic ? 'text-[#0077B6]' : 'text-[#BE185D]'
             }`}
           >
-            {isAquatic ? 'water_drop' : 'favorite'}
-          </span>
-        </div>
+            {settings.recipientName} · Together Since Dec 1, 2025 · Day {totalDays.toLocaleString()}
+          </p>
 
-        {/* Faux Washi Tape Accents */}
-        <div
-          className={`absolute -top-3 -left-4 z-20 w-16 h-5 backdrop-blur-xs -rotate-12 shadow-sm rounded-xs pointer-events-none border border-white/50 ${
-            isAquatic ? 'bg-[#caf0f8]/80' : 'bg-[#fbcfe8]/85'
-          }`}
-        />
-        <div
-          className={`absolute -bottom-3 -right-4 z-20 w-16 h-5 backdrop-blur-xs rotate-12 shadow-sm rounded-xs pointer-events-none border border-white/50 ${
-            isAquatic ? 'bg-[#caf0f8]/80' : 'bg-[#fbcfe8]/85'
-          }`}
-        />
+          <h1
+            className={`font-serif text-[36px] sm:text-[46px] md:text-[56px] tracking-tight mb-4 leading-[1.12] text-balance ${
+              isAquatic ? 'text-[#03045e]' : 'text-[#BE185D]'
+            }`}
+          >
+            {isAquatic
+              ? 'To The One Who Makes Every Ocean Calm'
+              : 'To The One Who Makes Every Day Bloom'}
+          </h1>
 
-        {/* Polaroid / Heirloom Matte Frame */}
-        <div
-          className={`relative bg-[#ffffff] p-4 md:p-6 rounded-3xl shadow-[0_16px_36px_-6px_rgba(236,72,153,0.14)] transition-all duration-500 group-hover:-translate-y-1.5 border ${
-            isAquatic ? 'border-[#caf0f8]' : 'border-[#fbcfe8]'
-          }`}
-        >
-          <div className="relative w-full aspect-square overflow-hidden rounded-2xl bg-[#fff0f5] shadow-inner">
-            <img
-              alt="Radiant keepsake portrait"
-              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-              src={settings.heroImageUrl}
-              loading="eager"
-            />
-            <div
-              className={`absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-40 pointer-events-none ${
-                isAquatic ? 'from-[#03045e]/30' : 'from-[#9d174d]/25'
-              }`}
-            />
+          <p
+            className={`font-serif italic text-lg sm:text-xl md:text-[23px] max-w-2xl mb-6 leading-relaxed ${
+              isAquatic ? 'text-[#0077B6]' : 'text-[#44313B]'
+            }`}
+          >
+            “{settings.mainQuote}”
+          </p>
 
-            {/* View Fullscreen overlay hint */}
-            <div
-              className={`absolute bottom-3 right-3 bg-white/85 backdrop-blur-md px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-semibold flex items-center gap-1 shadow-sm ${
-                isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[14px]">zoom_in</span>
-              <span>View Keepsake</span>
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between px-2">
-            <div className="text-left">
-              <span
-                className={`text-[11px] font-bold tracking-widest uppercase font-sans ${
-                  isAquatic ? 'text-[#0077b6]' : 'text-[#db2777]'
-                }`}
-              >
-                {settings.heroPhotoSub}
-              </span>
-              <p
-                className={`font-serif text-[20px] md:text-[22px] font-semibold ${
-                  isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
-                }`}
-              >
-                {settings.heroPhotoLabel}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleHeartClick}
-              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-colors border ${
-                isAquatic
-                  ? 'bg-[#caf0f8] hover:bg-[#90e0ef] text-[#03045e] border-[#90e0ef]'
-                  : 'bg-[#fff0f5] hover:bg-[#fce7f3] text-[#db2777] border-[#fbcfe8]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                {isAquatic ? 'water_drop' : 'favorite'}
-              </span>
-              <span>{isAquatic ? 'Pure Soul' : 'Always'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Action CTA: Add Memory & Note */}
-      <div className="flex items-center justify-center mt-6 z-10">
-        <button
-          onClick={onAddMemoryClick}
-          className={`flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer border ${
-            isAquatic
-              ? 'bg-[#0077b6] text-white hover:bg-[#023e8a] border-[#0077b6]'
-              : 'bg-gradient-to-r from-[#ec4899] to-[#f43f5e] hover:from-[#db2777] hover:to-[#e11d48] text-white border-[#fce7f3] shadow-[0_8px_20px_rgba(236,72,153,0.3)]'
-          }`}
-          type="button"
-        >
-          <span className="material-symbols-outlined text-[20px]">edit_note</span>
-          <span>Add Your Memory & Note</span>
-        </button>
-      </div>
-
-      {/* Live 24-Hour Day Counter Icon Card */}
-      <div className="w-full max-w-lg mt-10">
-        <div
-          className={`bg-[#ffffff]/95 backdrop-blur-md p-6 rounded-3xl shadow-sm border transition-all duration-300 text-left relative overflow-hidden ${
-            isAquatic
-              ? 'border-[#caf0f8]'
-              : 'border-[#fbcfe8] shadow-[0_4px_20px_rgba(244,114,182,0.1)]'
-          }`}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3.5">
-              {/* Day Counter Animated Icon */}
-              <div
-                className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 ${
-                  isAquatic
-                    ? 'bg-[#e0fbfc] text-[#0077b6] border border-[#90e0ef]'
-                    : 'bg-[#fce7f3] text-[#db2777] border border-[#fbcfe8]'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[28px] animate-pulse">
-                  calendar_today
-                </span>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-pink-600 font-sans">
-                    Live 24h Day Tracker
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping" />
+          {/* Short Customizable Message */}
+          <div
+            className={`w-full max-w-xl rounded-2xl p-4 sm:p-5 mb-7 border transition-colors ${
+              isAquatic
+                ? 'bg-white/85 border-[#90e0ef] text-[#03045e]'
+                : 'bg-[#FFF9F2]/90 border-[#FBCFE8] text-[#44313B]'
+            }`}
+          >
+            {editingMsg ? (
+              <form onSubmit={handleSaveMessage} className="space-y-3">
+                <label className="block text-xs font-semibold text-[#927C89]" htmlFor="hero-msg-input">
+                  Customizable keepsake note
+                </label>
+                <textarea
+                  id="hero-msg-input"
+                  rows={2}
+                  maxLength={220}
+                  value={draftMsg}
+                  onChange={(e) => setDraftMsg(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#FBCFE8] text-sm text-[#44313B] focus:outline-none focus:ring-2 focus:ring-[#EC4899]"
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraftMsg(settings.heroMessage || '');
+                      setEditingMsg(false);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#927C89] hover:bg-black/5 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={`px-4 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer ${
+                      isAquatic ? 'bg-[#0077B6]' : 'bg-[#EC4899]'
+                    }`}
+                  >
+                    Save Note
+                  </button>
                 </div>
-                <p
-                  className={`font-serif text-[32px] sm:text-[36px] font-semibold leading-none mt-1 ${
-                    isAquatic ? 'text-[#03045e]' : 'text-[#9d174d]'
+              </form>
+            ) : (
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm leading-relaxed text-left">
+                  {settings.heroMessage || 'Every mile between us only taught our hearts how to reach closer.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingMsg(true)}
+                  title="Customize message"
+                  aria-label="Edit keepsake message"
+                  className={`p-1.5 rounded-lg shrink-0 transition-colors cursor-pointer ${
+                    isAquatic
+                      ? 'text-[#0077B6] hover:bg-[#e0fbfc]'
+                      : 'text-[#BE185D] hover:bg-[#FCE7F3]'
                   }`}
                 >
-                  Day {totalDays.toLocaleString()}
+                  <span className="material-symbols-outlined text-[17px]">edit</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Live 24-Hour Relationship Counter Card */}
+          <div
+            className={`w-full max-w-xl rounded-2xl p-5 border shadow-xs backdrop-blur-md transition-colors ${
+              isAquatic
+                ? 'bg-white/90 border-[#90e0ef]'
+                : 'bg-white/90 border-[#FBCFE8]'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                    isAquatic
+                      ? 'bg-[#e0fbfc] text-[#0077B6]'
+                      : 'bg-[#FCE7F3] text-[#BE185D]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[24px]">calendar_today</span>
+                </div>
+                <div className="text-left">
+                  <p className={`text-xs font-semibold ${isAquatic ? 'text-[#0077B6]' : 'text-[#927C89]'}`}>
+                    Relationship Day Counter
+                  </p>
+                  <p
+                    className={`font-serif text-3xl font-bold leading-tight tabular-nums ${
+                      isAquatic ? 'text-[#03045e]' : 'text-[#BE185D]'
+                    }`}
+                  >
+                    Day {totalDays.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-left sm:text-right text-xs tabular-nums">
+                <p className="font-semibold text-[#44313B]">
+                  {years > 0 ? `${years}y ` : ''}
+                  {months}m {remainingDays}d together
+                </p>
+                <p className="text-[#927C89] mt-0.5">
+                  Next day in <span className="font-mono font-semibold">{countdown.formatted}</span>
                 </p>
               </div>
             </div>
-
-            <span
-              className={`text-[11px] font-semibold px-3 py-1 rounded-full border ${
-                isAquatic
-                  ? 'bg-[#caf0f8]/60 text-[#0077b6] border-[#90e0ef]'
-                  : 'bg-[#fff0f5] text-[#db2777] border-[#fbcfe8]'
-              }`}
-            >
-              Anniversary: 1st December 2025
-            </span>
           </div>
 
-          {/* 24-hr increment status indicator */}
-          <div className="mt-4 pt-3.5 border-t border-pink-100 flex items-center justify-between text-xs text-[#831843]">
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-pink-500">
-                schedule
+          {/* Primary Action */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mt-7">
+            <button
+              type="button"
+              onClick={onNavigateMemories}
+              className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white shadow-sm transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer min-h-[44px] ${
+                isAquatic
+                  ? 'bg-[#0077B6]'
+                  : 'bg-gradient-to-r from-[#EC4899] to-[#BE185D]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[19px]">add_a_photo</span>
+              <span>Add a Memory</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploadingPhoto}
+              className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm border transition-colors cursor-pointer min-h-[44px] ${
+                isAquatic
+                  ? 'bg-white/90 text-[#03045e] border-[#90e0ef] hover:bg-[#e0fbfc]'
+                  : 'bg-white/90 text-[#44313B] border-[#FBCFE8] hover:bg-[#FFF0F5]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+              <span>{uploadingPhoto ? 'Uploading...' : 'Change Portrait'}</span>
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handlePortraitUpload}
+            />
+          </div>
+        </div>
+
+        {/* Right: Large Keepsake Portrait Card */}
+        <div className="lg:col-span-5 flex justify-center">
+          <div
+            className="relative group w-full max-w-md cursor-pointer"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={onOpenPhotoLightbox}
+          >
+            {/* Soft Ambient Glow */}
+            <div
+              className={`absolute inset-2 rounded-3xl blur-2xl transition-opacity duration-500 ${
+                isAquatic
+                  ? 'bg-gradient-to-tr from-[#90e0ef]/45 via-[#caf0f8]/60 to-[#0077b6]/25'
+                  : 'bg-gradient-to-tr from-[#EC4899]/25 via-[#FBCFE8]/50 to-[#EDE9FE]/55'
+              } ${isHovered ? 'opacity-100' : 'opacity-70'}`}
+            />
+
+            {/* Heart/Drop Seal */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLovedHeart((v) => !v);
+              }}
+              aria-label={isAquatic ? 'Toggle ocean heart' : 'Toggle favorite heart'}
+              className={`absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 cursor-pointer border ${
+                isAquatic
+                  ? 'bg-[#0077B6] text-white border-[#caf0f8]'
+                  : 'bg-gradient-to-tr from-[#EC4899] to-[#BE185D] text-white border-[#FFF7F9]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isAquatic ? 'water_drop' : lovedHeart ? 'favorite' : 'favorite'}
               </span>
-              <span>Next day count in:</span>
-              <span className="font-mono font-bold text-[#db2777] bg-[#fce7f3] px-2 py-0.5 rounded text-[11px]">
-                {countdown.formatted}
-              </span>
+            </button>
+
+            <div
+              className={`relative bg-white p-4 sm:p-5 rounded-3xl shadow-md border transition-transform duration-300 group-hover:-translate-y-1 ${
+                isAquatic ? 'border-[#caf0f8]' : 'border-[#FBCFE8]'
+              }`}
+            >
+              <div className="relative w-full aspect-square overflow-hidden rounded-2xl bg-[#FFF0F5]">
+                <SafeImage
+                  src={settings.heroImageUrl}
+                  alt="Srishti and Manav keepsake portrait"
+                  theme={theme}
+                  loading="eager"
+                  placeholderTitle="Srishti & Manav"
+                  className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-500"
+                />
+                <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold flex items-center gap-1 shadow-xs text-[#44313B]">
+                  <span className="material-symbols-outlined text-[15px]">zoom_in</span>
+                  <span>Inspect</span>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between px-1">
+                <div className="text-left">
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-wider ${
+                      isAquatic ? 'text-[#0077B6]' : 'text-[#927C89]'
+                    }`}
+                  >
+                    {settings.heroPhotoSub}
+                  </p>
+                  <p
+                    className={`font-serif text-xl font-semibold ${
+                      isAquatic ? 'text-[#03045e]' : 'text-[#BE185D]'
+                    }`}
+                  >
+                    {settings.heroPhotoLabel}
+                  </p>
+                </div>
+                <span
+                  className={`text-xs font-semibold ${
+                    isAquatic ? 'text-[#0077B6]' : 'text-[#BE185D]'
+                  }`}
+                >
+                  {lovedHeart ? 'Cherished ❤️' : 'Always'}
+                </span>
+              </div>
             </div>
-            <span className="text-[11px] text-pink-500 font-medium">
-              Updates daily at midnight
-            </span>
           </div>
         </div>
       </div>
