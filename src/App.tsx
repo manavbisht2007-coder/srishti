@@ -96,21 +96,53 @@ export default function App() {
   const loadSanctuary = useCallback(async () => {
     setLoadingSanctuary(true);
     try {
-      const data = await apiFetch<SanctuaryState>('/api/sanctuary');
-      setSanctuary(data);
+      const localSanctuary: SanctuaryState = {
+        settings: {
+          recipientName: (publicHero.recipientName as string) || 'Srishti and Manav',
+          subtitle: (publicHero.subtitle as string) || 'Shishi- My kuchu puchuu',
+          startDate: (publicHero.startDate as string) || '2025-12-01',
+          mainQuote:
+            (publicHero.mainQuote as string) ||
+            'From a long-distance spark to right here in my arms',
+          heroImageUrl: (publicHero.heroImageUrl as string) || '',
+          ourStoryTitle: 'Our Story',
+          ourStorySubtitle: 'Every chapter with you',
+          letterUnlockDate: '2025-12-01',
+          defaultTheme: theme,
+          musicEnabled: false,
+          musicTitle: 'Our Song',
+          updatedAt: new Date().toISOString(),
+        } as KeepsakeSettings,
+        milestones: [],
+        memories: [],
+        letters: [],
+        journal: [],
+        bucketList: [],
+        specialDates: [],
+        littleThings: [],
+        wishes: [],
+        partners: user ? [user as unknown as SanctuaryState['partners'][number]] : [],
+        backendStatus: {
+          provider: 'local-express',
+          supabaseConfigured: false,
+          message: 'Running locally without backend API',
+        },
+      };
+
+      setSanctuary(localSanctuary);
       setPublicHero({
-        recipientName: data.settings.recipientName,
-        subtitle: data.settings.subtitle,
-        startDate: data.settings.startDate,
-        mainQuote: data.settings.mainQuote,
-        heroImageUrl: data.settings.heroImageUrl,
+        recipientName: localSanctuary.settings.recipientName,
+        subtitle: localSanctuary.settings.subtitle,
+        startDate: localSanctuary.settings.startDate,
+        mainQuote: localSanctuary.settings.mainQuote,
+        heroImageUrl: localSanctuary.settings.heroImageUrl,
       });
     } catch (err: any) {
       notify('error', err.message || 'Could not load sanctuary.');
     } finally {
       setLoadingSanctuary(false);
     }
-  }, [notify]);
+  }, [notify, publicHero, theme, user]);
 
   useEffect(() => {
     let active = true;
