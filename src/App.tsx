@@ -144,46 +144,16 @@ export default function App() {
     }
   }, [notify, publicHero, theme, user]);
 
-  useEffect(() => {
+ useEffect(() => {
     let active = true;
     async function boot() {
       try {
         const hero = await apiFetch<Partial<KeepsakeSettings>>('/api/public/hero');
         if (active && hero) {
-          setPublicHero(hero);
+          setPublicHero((prev) => ({ ...prev, ...hero }));
         }
       } catch {
         // fallback hero remains
-      }
-
-      if (!getAuthToken()) {
-        // Also try cookie-based session if present
-        try {
-          const meRes = await apiFetch<{ user: UserProfile }>('/api/auth/me');
-          if (active && meRes?.user) {
-            setUser(meRes.user);
-            await loadSanctuary();
-          }
-        } catch {
-          // Not authenticated
-        } finally {
-          if (active) setCheckingSession(false);
-        }
-        return;
-      }
-
-      try {
-        const meRes = await apiFetch<{ user: UserProfile }>('/api/auth/me');
-        if (active && meRes?.user) {
-          setUser(meRes.user);
-          await loadSanctuary();
-        }
-      } catch {
-        setAuthToken(null);
-        if (active) {
-          setUser(null);
-          setSanctuary(null);
-        }
       } finally {
         if (active) setCheckingSession(false);
       }
@@ -194,7 +164,7 @@ export default function App() {
       active = false;
       stopAmbientMusic();
     };
-  }, [loadSanctuary]);
+  }, []);
 
   const handleAuthenticated = async (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
