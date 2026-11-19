@@ -33,23 +33,31 @@ export const AuthGate: React.FC<AuthGateProps> = ({ theme, publicHero, onAuthent
     return () => clearInterval(id);
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+ const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setNotice('');
     setLoading(true);
-    try {
-      const res = await apiFetch<{ token: string; user: UserProfile }>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      setAuthToken(res.token);
-      onAuthenticated(res.user);
-    } catch (err: any) {
-      setError(err.message || 'Sign in failed.');
-    } finally {
-      setLoading(false);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const isManav = normalizedEmail === 'manav@srishtimanav.love' && password === 'manav2025';
+    const isSrishti = normalizedEmail === 'srishti@srishtimanav.love' && password === 'srishti2025';
+
+    if (isManav || isSrishti) {
+      const user = {
+        id: isManav ? 'manav' : 'srishti',
+        email: normalizedEmail,
+        displayName: isManav ? 'Manav' : 'Srishti',
+        role: isManav ? 'partner_a' : 'partner_b',
+      } as unknown as UserProfile;
+
+      setAuthToken('local-sanctuary-token');
+      onAuthenticated(user);
+    } else {
+      setError('Invalid email or passphrase.');
     }
+
+    setLoading(false);
   };
 
   const handleActivate = async (e: React.FormEvent) => {
@@ -465,3 +473,4 @@ export const AuthGate: React.FC<AuthGateProps> = ({ theme, publicHero, onAuthent
     </section>
   );
 };
+
